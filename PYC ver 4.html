@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phiếu Yêu Cầu Thử Nghiệm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            background-color: #f0f4f8;
+            font-family: 'Inter', sans-serif;
+            color: #334155;
+        }
+        
+        .form-container {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), 0 5px 10px rgba(0, 0, 0, 0.03);
+            background: #ffffff;
+        }
+        
+        .required::after {
+            content: " *";
+            color: #e53e3e;
+        }
+        
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            transition: all 0.2s ease;
+        }
+        
+        .file-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Enhanced header styling */
+        .header-container {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+            opacity: 0.3;
+        }
+        
+        .header-badge {
+            background-color: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        .header-icon {
+            position: relative;
+            z-index: 10;
+        }
+        
+        .header-icon::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            transform: scale(1.3);
+            z-index: -1;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1.3); opacity: 0.7; }
+            50% { transform: scale(1.5); opacity: 0.4; }
+            100% { transform: scale(1.3); opacity: 0.7; }
+        }
+        
+        .header-line {
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.2) 100%);
+            border-radius: 2px;
+        }
+        
+        .section-title {
+            position: relative;
+            display: inline-block;
+            padding-bottom: 8px;
+        }
+        
+        .section-title::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6 0%, #93c5fd 100%);
+            border-radius: 2px;
+        }
+        
+        /* Form styling enhancements */
+        input[type="text"], 
+        input[type="email"], 
+        input[type="date"], 
+        input[type="number"],
+        select, 
+        textarea {
+            transition: all 0.2s ease;
+            border-color: #e2e8f0;
+        }
+        
+        input[type="text"]:focus, 
+        input[type="email"]:focus, 
+        input[type="date"]:focus, 
+        input[type="number"]:focus,
+        select:focus, 
+        textarea:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        input[type="radio"], 
+        input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        .form-section {
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .form-section:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Button styling */
+        .submit-btn {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1), 0 1px 3px rgba(37, 99, 235, 0.08);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 7px 14px rgba(37, 99, 235, 0.1), 0 3px 6px rgba(37, 99, 235, 0.08);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(1px);
+        }
+        
+        /* File upload styling */
+        .file-upload {
+            border: 2px dashed #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        
+        .file-upload:hover {
+            border-color: #bfdbfe;
+            background-color: #f8fafc;
+        }
+        
+        /* Custom file input styling */
+        input[type="file"] {
+            cursor: pointer;
+        }
+        
+        input[type="file"]::file-selector-button {
+            border: none;
+            padding: 0.5em 1em;
+            border-radius: 0.25em;
+            background-color: #f1f5f9;
+            transition: all 0.2s ease;
+            color: #334155;
+            cursor: pointer;
+            font-weight: 500;
+            margin-right: 1em;
+        }
+        
+        input[type="file"]::file-selector-button:hover {
+            background-color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 py-8">
+    <div class="form-container w-full max-w-4xl rounded-xl overflow-hidden">
+        <!-- Enhanced Professional Header -->
+        <div class="header-container relative">
+            <!-- Decorative elements -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full transform translate-x-16 -translate-y-16"></div>
+            <div class="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full transform -translate-x-12 translate-y-12"></div>
+            
+            <div class="relative z-10 p-8 md:p-10">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-3">
+                            <div class="inline-block header-badge px-3 py-1 rounded-full text-xs font-semibold text-white">
+                                Phòng DQA
+                            </div>
+                            <div class="header-line hidden md:block"></div>
+                        </div>
+                        
+                        <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 tracking-tight">
+                            PHIẾU YÊU CẦU THỬ NGHIỆM
+                        </h1>
+                        
+                        <div class="flex items-center space-x-2 mt-3">
+                            <div class="w-8 h-1 bg-blue-300 rounded-full opacity-70"></div>
+                            <p class="text-blue-100 text-sm md:text-base">Mẫu đăng ký yêu cầu thử nghiệm sản phẩm</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 md:mt-0 flex-shrink-0">
+                        <div class="header-icon bg-white bg-opacity-10 p-4 rounded-lg border border-white border-opacity-20 backdrop-filter backdrop-blur-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Decorative dots -->
+                <div class="absolute bottom-3 right-10 flex space-x-1">
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-300 opacity-70"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-300 opacity-50"></div>
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-300 opacity-30"></div>
+                </div>
+            </div>
+        </div>
+        
+        <form id="testRequestForm" class="p-6 md:p-8 space-y-6 bg-white">
+            <!-- A. Thông tin chung -->
+            <div class="form-section bg-white p-6 rounded-xl">
+                <h2 class="text-xl font-semibold text-blue-700 mb-6 section-title">A. Thông tin chung</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="requesterName" class="block text-sm font-medium text-gray-700 mb-1 required">Họ tên người gửi</label>
+                        <input type="text" id="requesterName" name="requesterName" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1 required">Email</label>
+                        <input type="email" id="email" name="email" required 
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="requestDate" class="block text-sm font-medium text-gray-700 mb-1 required">Ngày yêu cầu</label>
+                        <input type="date" id="requestDate" name="requestDate" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="deptRequest" class="block text-sm font-medium text-gray-700 mb-1 required">Phòng ban yêu cầu</label>
+                        <select id="deptRequest" name="deptRequest" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="">-- Chọn phòng ban --</option>
+                            <option value="Mua hàng">Mua hàng</option>
+                            <option value="SC">SC</option>
+                            <option value="KTSX">KTSX</option>
+                            <option value="TKCK">TKCK</option>
+                            <option value="KTCN">KTCN</option>
+                            <option value="NCTN">NCTN</option>
+                            <option value="TKĐT">TKĐT</option>
+                            <option value="QA/QC nhà máy">QA/QC nhà máy</option>
+                            <option value="DQA">DQA</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- B. Thông tin sản phẩm / linh kiện -->
+            <div class="form-section bg-white p-6 rounded-xl">
+                <h2 class="text-xl font-semibold text-blue-700 mb-6 section-title">B. Thông tin sản phẩm / linh kiện</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="itemName" class="block text-sm font-medium text-gray-700 mb-1 required">Tên sản phẩm/linh kiện</label>
+                        <input type="text" id="itemName" name="itemName" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="itemCode" class="block text-sm font-medium text-gray-700 mb-1 required">Mã sản phẩm/linh kiện</label>
+                        <input type="text" id="itemCode" name="itemCode" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <div class="mt-5">
+                    <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1 required">Mục đích yêu cầu</label>
+                    <select id="purpose" name="purpose" required
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Chọn mục đích --</option>
+                        <option value="Đánh giá SOP mới">Đánh giá SOP mới</option>
+                        <option value="Đánh giá thay đổi nhà cung cấp">Đánh giá thay đổi nhà cung cấp</option>
+                        <option value="Đánh giá thay đổi 4M">Đánh giá thay đổi 4M</option>
+                        <option value="Phản hồi lỗi thị trường">Phản hồi lỗi thị trường</option>
+                        <option value="Kiểm tra định kỳ nội bộ">Kiểm tra định kỳ nội bộ</option>
+                        <option value="Đánh giá đề xuất cải tiến">Đánh giá đề xuất cải tiến</option>
+                        <option value="Phối hợp nghiên cứu công nghệ">Phối hợp nghiên cứu công nghệ</option>
+                        <option value="Yêu cầu từ khách hàng / bên thứ 3">Yêu cầu từ khách hàng / bên thứ 3</option>
+                    </select>
+                </div>
+                
+                <div id="purposeDescription" class="mt-3 p-4 bg-blue-50 rounded-lg text-sm text-gray-700 hidden"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                    <div>
+                        <label for="vendor" class="block text-sm font-medium text-gray-700 mb-1">Nhà cung cấp</label>
+                        <input type="text" id="vendor" name="vendor"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label for="qtySamples" class="block text-sm font-medium text-gray-700 mb-1 required">Số lượng mẫu thử giao</label>
+                        <input type="number" id="qtySamples" name="qtySamples" min="1" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label for="desiredDate" class="block text-sm font-medium text-gray-700 mb-1 required">Thời hạn mong muốn có kết quả</label>
+                        <input type="date" id="desiredDate" name="desiredDate" required
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <div class="mt-5">
+                    <label for="changeReq" class="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
+                    <textarea id="changeReq" name="changeReq" rows="3" placeholder="Điểm thay đổi, lý do yêu cầu gấp..."
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+            
+            <!-- C. Thông tin thử nghiệm yêu cầu -->
+            <div class="form-section bg-white p-6 rounded-xl">
+                <h2 class="text-xl font-semibold text-blue-700 mb-6 section-title">C. Thông tin thử nghiệm yêu cầu</h2>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                        <input type="radio" id="kiemtraDefault" name="testType" value="default" checked
+                            class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500">
+                        <label for="kiemtraDefault" class="ml-3 block text-sm text-gray-700">
+                            Kiểm tra mặc định theo tiêu chuẩn kỹ thuật
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                        <input type="radio" id="kiemtraDacBiet" name="testType" value="special"
+                            class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500">
+                        <label for="kiemtraDacBiet" class="ml-3 block text-sm text-gray-700">
+                            Kiểm tra đặc biệt theo yêu cầu
+                        </label>
+                    </div>
+                    
+                    <div id="specialTestOptions" class="pl-7 mt-4 space-y-4 hidden bg-gray-50 p-5 rounded-lg">
+                        <div class="flex flex-col md:flex-row md:items-center">
+                            <div class="flex items-center md:w-1/3">
+                                <input type="checkbox" id="chiSoCoBan" name="chiSoCoBan" value="1"
+                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                <label for="chiSoCoBan" class="ml-3 block text-sm text-gray-700">
+                                    Chỉ số cơ bản
+                                </label>
+                            </div>
+                            <input type="text" id="chiSoCoBanDesc" name="chiSoCoBanDesc" placeholder="Kích thước, khối lượng..."
+                                class="mt-2 md:mt-0 md:ml-3 flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row md:items-center">
+                            <div class="flex items-center md:w-1/3">
+                                <input type="checkbox" id="tinhNang" name="tinhNang" value="1"
+                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                <label for="tinhNang" class="ml-3 block text-sm text-gray-700">
+                                    Tính năng
+                                </label>
+                            </div>
+                            <input type="text" id="tinhNangDesc" name="tinhNangDesc" placeholder="Mô tả tính năng..."
+                                class="mt-2 md:mt-0 md:ml-3 flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row md:items-center">
+                            <div class="flex items-center md:w-1/3">
+                                <input type="checkbox" id="diemNG" name="diemNG" value="1"
+                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                <label for="diemNG" class="ml-3 block text-sm text-gray-700">
+                                    Điểm NG
+                                </label>
+                            </div>
+                            <input type="text" id="diemNGDesc" name="diemNGDesc" placeholder="Mã báo cáo tham khảo..."
+                                class="mt-2 md:mt-0 md:ml-3 flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row md:items-center">
+                            <div class="flex items-center md:w-1/3">
+                                <input type="checkbox" id="testBen" name="testBen" value="1"
+                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                <label for="testBen" class="ml-3 block text-sm text-gray-700">
+                                    Test bền
+                                </label>
+                            </div>
+                            <input type="text" id="testBenDesc" name="testBenDesc" placeholder="Hạng mục..."
+                                class="mt-2 md:mt-0 md:ml-3 flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row md:items-center">
+                            <div class="flex items-center md:w-1/3">
+                                <input type="checkbox" id="khacTest" name="khacTest" value="1"
+                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                                <label for="khacTest" class="ml-3 block text-sm text-gray-700">
+                                    Khác
+                                </label>
+                            </div>
+                            <input type="text" id="khacTestDesc" name="khacTestDesc" placeholder="Nội dung khác..."
+                                class="mt-2 md:mt-0 md:ml-3 flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- D. Tài liệu đính kèm -->
+            <div class="form-section bg-white p-6 rounded-xl">
+                <h2 class="text-xl font-semibold text-blue-700 mb-6 section-title">D. Tài liệu đính kèm</h2>
+                
+                <div class="space-y-4">
+                    <div class="file-upload p-5 rounded-lg bg-gray-50">
+                        <label for="attachmentFiles" class="block text-sm font-medium text-gray-700 mb-3">Chọn tệp đính kèm</label>
+                        <input type="file" id="attachmentFiles" name="attachmentFiles" multiple
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="mt-2 text-xs text-gray-500">Hỗ trợ nhiều định dạng tệp (PDF, Word, Excel, hình ảnh...)</p>
+                    </div>
+                    
+                    <div id="fileList" class="file-list mt-3 text-sm text-gray-600 border border-gray-200 rounded-lg p-3 bg-white"></div>
+                    
+                    <!-- Hidden field to store file links and names -->
+                    <input type="hidden" id="attachments" name="attachments" value="">
+                    
+                    <div id="uploadStatus" class="mt-2 text-sm"></div>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="flex justify-center mt-8">
+                <button type="submit" id="submitBtn" 
+                    class="submit-btn px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all">
+                    Gửi yêu cầu
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Google Apps Script URL for file uploads
+            const UPLOAD_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxCijAALPkXShSLSUELoVhtEGDGMUwe4ZPl_jqE-xi7le_WGN5s0IOv0o5FVYpZaNmc/exec";
+            
+            // Updated SheetDB API endpoint with your new URL
+            const SHEETDB_API_URL = "https://sheetdb.io/api/v1/n9g1hj5bhqymg";
+            
+            // Purpose description mapping
+            const purposeDescriptions = {
+                "Đánh giá SOP mới": "Sản phẩm/linh kiện sắp SOP, cần test độ bền, phù hợp TCKT trước khi sản xuất đại trà",
+                "Đánh giá thay đổi nhà cung cấp": "Linh kiện/sản phẩm thay đổi nhà cung cấp, cần test lại để đảm bảo không ảnh hưởng chất lượng",
+                "Đánh giá thay đổi 4M": "Có thay đổi về vật liệu, máy móc, quy trình, nhân sự (4M) cần đánh giá lại rủi ro",
+                "Phản hồi lỗi thị trường": "Sản phẩm đang sử dụng bị phản ánh lỗi từ người dùng/CSKH, cần test lại nguyên nhân",
+                "Kiểm tra định kỳ nội bộ": "Yêu cầu thử nghiệm theo kế hoạch nội bộ (QA, MKT, kiểm tra định kỳ thiết bị)",
+                "Đánh giá đề xuất cải tiến": "Linh kiện có đề xuất cải tiến về thiết kế/cấu trúc/chi phí – cần xác nhận bằng test",
+                "Phối hợp nghiên cứu công nghệ": "Test tính năng/đặc tính kỹ thuật trong quá trình nghiên cứu công nghệ mới",
+                "Yêu cầu từ khách hàng / bên thứ 3": "Đối tác, khách hàng yêu cầu xác nhận kỹ thuật, đánh giá khả năng đáp ứng tiêu chuẩn riêng"
+            };
+
+            // Function to log debug information (kept for backend debugging but not displayed in UI)
+            function logDebug(message, data = null) {
+                const timestamp = new Date().toLocaleTimeString();
+                let logMessage = `[${timestamp}] ${message}`;
+                
+                if (data) {
+                    if (typeof data === 'object') {
+                        try {
+                            logMessage += `\n${JSON.stringify(data, null, 2)}`;
+                        } catch (e) {
+                            logMessage += `\n[Object cannot be stringified]`;
+                        }
+                    } else {
+                        logMessage += `\n${data}`;
+                    }
+                }
+                
+                console.log(logMessage);
+            }
+
+            // Set today's date as default for request date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('requestDate').value = today;
+            
+            // Purpose dropdown change handler
+            document.getElementById('purpose').addEventListener('change', function() {
+                const purposeDesc = document.getElementById('purposeDescription');
+                const selectedPurpose = this.value;
+                
+                if (selectedPurpose && purposeDescriptions[selectedPurpose]) {
+                    purposeDesc.textContent = purposeDescriptions[selectedPurpose];
+                    purposeDesc.classList.remove('hidden');
+                } else {
+                    purposeDesc.classList.add('hidden');
+                }
+            });
+            
+            // Test type radio buttons handler
+            document.querySelectorAll('input[name="testType"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const specialOptions = document.getElementById('specialTestOptions');
+                    if (this.value === 'special') {
+                        specialOptions.classList.remove('hidden');
+                    } else {
+                        specialOptions.classList.add('hidden');
+                    }
+                });
+            });
+            
+            // File upload handling
+            const fileInput = document.getElementById('attachmentFiles');
+            const fileList = document.getElementById('fileList');
+            const attachmentsField = document.getElementById('attachments');
+            let uploadedFiles = [];
+            
+            // Initialize empty file list message
+            updateEmptyFileListMessage();
+            
+            fileInput.addEventListener('change', async function(e) {
+                if (this.files.length > 0) {
+                    const uploadStatus = document.getElementById('uploadStatus');
+                    uploadStatus.innerHTML = '<div class="text-blue-600 flex items-center"><div class="loading-spinner mr-2"></div>Đang tải lên tệp...</div>';
+                    
+                    // Show loading indicator in file list
+                    fileList.innerHTML = '<div class="flex items-center justify-center p-4"><div class="loading-spinner mr-2"></div><span>Đang tải lên...</span></div>';
+                    
+                    const files = Array.from(this.files);
+                    const fileNames = [];
+                    const fileUrls = [];
+                    
+                    try {
+                        for (const file of files) {
+                            const reader = new FileReader();
+                            
+                            const uploadPromise = new Promise((resolve, reject) => {
+                                reader.onload = async function() {
+                                    try {
+                                        const base64 = reader.result.split(',')[1];
+                                        const formData = new URLSearchParams();
+                                        formData.append("filedata", base64);
+                                        formData.append("filename", file.name);
+                                        formData.append("mimetype", file.type);
+                                        
+                                        const response = await fetch(UPLOAD_SCRIPT_URL, {
+                                            method: "POST",
+                                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                                            body: formData.toString()
+                                        });
+                                        
+                                        if (!response.ok) {
+                                            throw new Error("Upload failed");
+                                        }
+                                        
+                                        const url = await response.text();
+                                        fileUrls.push(url);
+                                        fileNames.push(file.name);
+                                        resolve();
+                                    } catch (error) {
+                                        reject(error);
+                                    }
+                                };
+                                
+                                reader.onerror = () => reject(new Error("File reading failed"));
+                                reader.readAsDataURL(file);
+                            });
+                            
+                            await uploadPromise;
+                        }
+                        
+                        // Update uploaded files array with names and URLs
+                        for (let i = 0; i < fileNames.length; i++) {
+                            uploadedFiles.push({
+                                name: fileNames[i],
+                                url: fileUrls[i]
+                            });
+                        }
+                        
+                        // Update file list display
+                        updateFileListDisplay();
+                        
+                        // Update hidden field with file names
+                        updateAttachmentsField();
+                        
+                        // Show success message
+                        uploadStatus.innerHTML = '<div class="text-green-600 font-medium flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>Tải lên thành công!</div>';
+                        setTimeout(() => {
+                            uploadStatus.innerHTML = '';
+                        }, 3000);
+                    } catch (error) {
+                        console.error("Upload error:", error);
+                        fileList.innerHTML = '<div class="text-red-600 p-4 flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>Lỗi khi tải lên tệp. Vui lòng thử lại.</div>';
+                        uploadStatus.innerHTML = '<div class="text-red-600">Lỗi: ' + error.message + '</div>';
+                    }
+                    
+                    // Clear file input
+                    fileInput.value = '';
+                }
+            });
+            
+            // Function to update file list display
+            function updateFileListDisplay() {
+                if (uploadedFiles.length === 0) {
+                    updateEmptyFileListMessage();
+                    return;
+                }
+                
+                let fileListHTML = '<div class="p-3">';
+                fileListHTML += '<div class="flex justify-between items-center mb-3">';
+                fileListHTML += '<span class="text-green-600 font-medium flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>Các file đã lưu:</span>';
+                fileListHTML += '<button type="button" id="clearAllFiles" class="text-red-500 hover:text-red-700 text-sm font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors">Xóa tất cả</button>';
+                fileListHTML += '</div><div class="space-y-2">';
+                
+                uploadedFiles.forEach((file, index) => {
+                    // Determine file icon based on extension
+                    let fileIcon = getFileIcon(file.name);
+                    
+                    fileListHTML += `
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg file-item" data-index="${index}">
+                            <a href="${file.url}" target="_blank" class="text-blue-600 hover:underline flex-1 truncate flex items-center">
+                                ${fileIcon}
+                                <span class="ml-2">${file.name}</span>
+                            </a>
+                            <button type="button" class="remove-file text-red-500 hover:text-red-700 ml-2 p-1 hover:bg-red-50 rounded-full transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                fileListHTML += '</div></div>';
+                fileList.innerHTML = fileListHTML;
+                
+                // Add event listeners to remove buttons
+                document.querySelectorAll('.remove-file').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const fileItem = this.closest('.file-item');
+                        const index = parseInt(fileItem.dataset.index);
+                        
+                        // Remove file from array
+                        uploadedFiles.splice(index, 1);
+                        
+                        // Update display and hidden field
+                        updateFileListDisplay();
+                        updateAttachmentsField();
+                    });
+                });
+                
+                // Add event listener to clear all button
+                document.getElementById('clearAllFiles').addEventListener('click', function() {
+                    uploadedFiles = [];
+                    updateFileListDisplay();
+                    updateAttachmentsField();
+                });
+            }
+            
+            // Function to get appropriate file icon based on extension
+            function getFileIcon(filename) {
+                const extension = filename.split('.').pop().toLowerCase();
+                
+                // Define icons for different file types
+                const icons = {
+                    pdf: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" /></svg>',
+                    doc: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" /></svg>',
+                    docx: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" /></svg>',
+                    xls: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" /></svg>',
+                    xlsx: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" /></svg>',
+                    jpg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" /></svg>',
+                    jpeg: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" /></svg>',
+                    png: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" /></svg>',
+                    gif: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" /></svg>',
+                    zip: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 2v2h2V6H6zm2 2v2h2V8H8zm2 2v2h2v-2h-2zm2 2v2h-2v-2h2zm-4 0v2H6v-2h2z" clip-rule="evenodd" /></svg>',
+                    rar: '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 2v2h2V6H6zm2 2v2h2V8H8zm2 2v2h2v-2h-2zm2 2v2h-2v-2h2zm-4 0v2H6v-2h2z" clip-rule="evenodd" /></svg>'
+                };
+                
+                return icons[extension] || '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" /></svg>';
+            }
+            
+            // Function to update empty file list message
+            function updateEmptyFileListMessage() {
+                fileList.innerHTML = '<div id="emptyFileList" class="text-center py-6 text-gray-500 flex flex-col items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Chưa có tệp đính kèm nào</div>';
+            }
+            
+            // Update attachments hidden field (only names)
+            function updateAttachmentsField() {
+                // Store only file names in the hidden field
+                attachmentsField.value = uploadedFiles.map(file => file.name).join(';');
+            }
+            
+            // Form submission
+            document.getElementById('testRequestForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Validate form
+                if (!validateForm()) {
+                    return;
+                }
+                
+                // Show loading state
+                const submitBtn = document.getElementById('submitBtn');
+                const originalBtnText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<div class="flex items-center justify-center"><div class="loading-spinner mr-2"></div>Đang gửi...</div>';
+                
+                // Collect form data exactly as specified
+                const formData = new FormData(this);
+                
+                // Create the data object with the exact structure requested
+                const data = {
+                    requesterName: formData.get("requesterName"),
+                    email: formData.get("email"),
+                    requestDate: formData.get("requestDate"),
+                    deptRequest: formData.get("deptRequest"),
+                    itemName: formData.get("itemName"),
+                    itemCode: formData.get("itemCode"),
+                    purpose: formData.get("purpose"),
+                    vendor: formData.get("vendor"),
+                    qtySamples: formData.get("qtySamples"),
+                    desiredDate: formData.get("desiredDate"),
+                    changeReq: formData.get("changeReq"),
+                    kiemtraDefault: formData.get("testType") === "default" ? "1" : "0",
+                    kiemtraDacBiet: formData.get("testType") === "special" ? "1" : "0",
+                    chiSoCoBan: formData.get("chiSoCoBan") ? "1" : "0",
+                    chiSoCoBanDesc: formData.get("chiSoCoBanDesc"),
+                    tinhNang: formData.get("tinhNang") ? "1" : "0",
+                    tinhNangDesc: formData.get("tinhNangDesc"),
+                    diemNG: formData.get("diemNG") ? "1" : "0",
+                    diemNGDesc: formData.get("diemNGDesc"),
+                    testBen: formData.get("testBen") ? "1" : "0",
+                    testBenDesc: formData.get("testBenDesc"),
+                    khacTest: formData.get("khacTest") ? "1" : "0",
+                    khacTestDesc: formData.get("khacTestDesc"),
+                    attachments: document.getElementById("attachments").value || ""
+                };
+                
+                // Format for SheetDB
+                const jsonData = {
+                    data: [data]
+                };
+                
+                // Log debug info (to console only)
+                logDebug("Sending data to SheetDB", jsonData);
+                
+                try {
+                    // First try with the standard approach
+                    logDebug("Attempting to send data with standard fetch...");
+                    
+                    const response = await fetch(SHEETDB_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(jsonData)
+                    });
+                    
+                    // Log response details for debugging (to console only)
+                    logDebug(`Response status: ${response.status}`);
+                    logDebug(`Response status text: ${response.statusText}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Network response was not ok (${response.status}): ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    logDebug("Success response:", result);
+                    
+                    // Show success message
+                    const uploadStatus = document.getElementById('uploadStatus');
+                    uploadStatus.innerHTML = `
+                        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <p class="font-medium">Gửi yêu cầu thành công!</p>
+                                <p class="text-sm mt-1">Yêu cầu của bạn đã được ghi nhận và sẽ được xử lý.</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Reset form only on successful submission
+                    document.getElementById('testRequestForm').reset();
+                    document.getElementById('purposeDescription').classList.add('hidden');
+                    document.getElementById('specialTestOptions').classList.add('hidden');
+                    uploadedFiles = [];
+                    updateFileListDisplay();
+                    document.getElementById('attachments').value = '';
+                    
+                    // Set today's date again
+                    document.getElementById('requestDate').value = today;
+                    
+                    // Reset button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                    
+                    // Clear success message after 5 seconds
+                    setTimeout(() => {
+                        uploadStatus.innerHTML = '';
+                    }, 5000);
+                    
+                } catch (error) {
+                    logDebug("Error with standard fetch:", error.message);
+                    
+                    // Try alternative approach with XMLHttpRequest
+                    logDebug("Attempting with XMLHttpRequest as fallback...");
+                    
+                    try {
+                        const result = await new Promise((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('POST', SHEETDB_API_URL, true);
+                            xhr.setRequestHeader('Content-Type', 'application/json');
+                            xhr.setRequestHeader('Accept', 'application/json');
+                            
+                            xhr.onreadystatechange = function() {
+                                if (xhr.readyState === 4) {
+                                    logDebug(`XHR Status: ${xhr.status}`);
+                                    logDebug(`XHR Response: ${xhr.responseText}`);
+                                    
+                                    if (xhr.status >= 200 && xhr.status < 300) {
+                                        try {
+                                            const result = JSON.parse(xhr.responseText);
+                                            resolve(result);
+                                        } catch (e) {
+                                            reject(new Error(`Could not parse response: ${e.message}`));
+                                        }
+                                    } else {
+                                        reject(new Error(`XHR failed with status ${xhr.status}: ${xhr.responseText}`));
+                                    }
+                                }
+                            };
+                            
+                            xhr.onerror = function() {
+                                reject(new Error('XHR request failed'));
+                            };
+                            
+                            xhr.send(JSON.stringify(jsonData));
+                        });
+                        
+                        logDebug("XHR Success response:", result);
+                        
+                        // Show success message
+                        const uploadStatus = document.getElementById('uploadStatus');
+                        uploadStatus.innerHTML = `
+                            <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-start">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                                <div>
+                                    <p class="font-medium">Gửi yêu cầu thành công!</p>
+                                    <p class="text-sm mt-1">Yêu cầu của bạn đã được ghi nhận và sẽ được xử lý.</p>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Reset form only on successful submission
+                        document.getElementById('testRequestForm').reset();
+                        document.getElementById('purposeDescription').classList.add('hidden');
+                        document.getElementById('specialTestOptions').classList.add('hidden');
+                        uploadedFiles = [];
+                        updateFileListDisplay();
+                        document.getElementById('attachments').value = '';
+                        
+                        // Set today's date again
+                        document.getElementById('requestDate').value = today;
+                        
+                    } catch (xhrError) {
+                        logDebug("XHR approach also failed:", xhrError.message);
+                        
+                        // Show detailed error message
+                        const uploadStatus = document.getElementById('uploadStatus');
+                        uploadStatus.innerHTML = `
+                            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                <div>
+                                    <p class="font-medium">Lỗi khi gửi dữ liệu</p>
+                                    <p class="text-sm mt-1">Vui lòng thử lại sau hoặc liên hệ quản trị viên.</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } finally {
+                    // Reset button in all cases
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                }
+            });
+            
+            // Form validation
+            function validateForm() {
+                let isValid = true;
+                
+                // Check required fields
+                const requiredFields = document.querySelectorAll('[required]');
+                requiredFields.forEach(field => {
+                    if (!field.value) {
+                        field.classList.add('border-red-500', 'bg-red-50');
+                        isValid = false;
+                        
+                        // Add shake animation
+                        field.classList.add('animate-shake');
+                        setTimeout(() => {
+                            field.classList.remove('animate-shake');
+                        }, 500);
+                        
+                        field.addEventListener('input', function() {
+                            if (this.value) {
+                                this.classList.remove('border-red-500', 'bg-red-50');
+                            }
+                        }, { once: true });
+                    } else {
+                        field.classList.remove('border-red-500', 'bg-red-50');
+                    }
+                });
+                
+                // Check special test options if selected
+                if (document.getElementById('kiemtraDacBiet').checked) {
+                    const specialTestItems = document.querySelectorAll('input[type="checkbox"][name$="Test"]:checked, input[name="chiSoCoBan"]:checked, input[name="tinhNang"]:checked, input[name="diemNG"]:checked');
+                    if (specialTestItems.length === 0) {
+                        document.getElementById('specialTestOptions').classList.add('border', 'border-red-500');
+                        isValid = false;
+                        
+                        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                            checkbox.addEventListener('change', function() {
+                                if (document.querySelectorAll('input[type="checkbox"]:checked').length > 0) {
+                                    document.getElementById('specialTestOptions').classList.remove('border', 'border-red-500');
+                                }
+                            }, { once: true });
+                        });
+                    } else {
+                        document.getElementById('specialTestOptions').classList.remove('border', 'border-red-500');
+                    }
+                    
+                    // Check if descriptions are provided for checked options
+                    specialTestItems.forEach(item => {
+                        const descField = document.getElementById(item.id + 'Desc');
+                        if (descField && !descField.value) {
+                            descField.classList.add('border-red-500', 'bg-red-50');
+                            isValid = false;
+                            
+                            descField.addEventListener('input', function() {
+                                if (this.value) {
+                                    this.classList.remove('border-red-500', 'bg-red-50');
+                                }
+                            }, { once: true });
+                        }
+                    });
+                }
+                
+                if (!isValid) {
+                    // Show error message
+                    const uploadStatus = document.getElementById('uploadStatus');
+                    uploadStatus.innerHTML = `
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <p class="font-medium">Vui lòng điền đầy đủ thông tin bắt buộc</p>
+                                <p class="text-sm mt-1">Các trường có dấu * là bắt buộc.</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Scroll to first error with smooth animation
+                    const firstError = document.querySelector('.border-red-500');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+                
+                return isValid;
+            }
+            
+            // Add animation styles
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px); }
+                }
+                .animate-shake {
+                    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9663c71de09985af',t:'MTc1MzY5OTQzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
