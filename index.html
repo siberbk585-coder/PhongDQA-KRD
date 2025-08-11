@@ -502,17 +502,19 @@
           // Map to index.html schema; replace removed checkbox fields with Specialreq
           const isSpecial = data.testType === 'special';
           const submissionRound = parseInt(data.sampleSubmissionNo || '0', 10) || 0;
+          const normalizedRequestDate = (data.requestDate || '').toString().slice(0,10);
+          const normalizedDesiredDate = (data.desiredCompletionDate || '').toString().slice(0,10);
           const mapped = {
             requesterName: data.senderName || '',
             email: data.senderEmail || '',
-            requestDate: data.requestDate || '',
+            requestDate: normalizedRequestDate,
             deptRequest: data.department || '',
             itemName: data.productName || '',
             itemCode: data.productCode || '',
             purpose: data.requestPurpose || '',
             vendor: data.supplier || '',
             qtySamples: data.numSamples || '',
-            desiredDate: data.desiredCompletionDate || '',
+            desiredDate: normalizedDesiredDate,
             changeReq: data.notes || '',
             kiemtraDefault: isSpecial ? '0' : '1',
             kiemtraDacBiet: isSpecial ? '1' : '0',
