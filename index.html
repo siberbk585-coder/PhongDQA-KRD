@@ -443,16 +443,17 @@
       fileInput.addEventListener('change', async function(){
         if (!this.files || this.files.length === 0) return;
         for (const file of this.files){
-          const itemDiv = document.createElement('div');
-          itemDiv.className = "flex items-center justify-between p-2 bg-blue-50 rounded";
-          itemDiv.innerHTML = `
+          // Create a row with spinner first
+          const rowDiv = document.createElement('div');
+          rowDiv.className = "flex items-center justify-between p-2 bg-blue-50 rounded";
+          rowDiv.innerHTML = `
             <span>📄<span class=\"ml-2\">${file.name}</span></span>
             <span class=\"spinner\"></span>
           `;
-          uploadList.appendChild(itemDiv);
+          uploadList.appendChild(rowDiv);
           try{
-            const reader = new FileReader();
             const url = await new Promise((resolve, reject)=>{
+              const reader = new FileReader();
               reader.onload = async ()=>{
                 try{
                   const base64 = reader.result.split(',')[1];
@@ -466,18 +467,40 @@
                     body: form.toString()
                   });
                   if(!resp.ok) throw new Error('Upload failed');
-                  const urlText = await resp.text();
-                  resolve(urlText);
+                  const raw = await resp.text();
+                  let parsedUrl = '';
+                  try{
+                    const j = JSON.parse(raw);
+                    parsedUrl = j.url || j.fileUrl || j.public_url || j.link || (j.data && j.data[0] && j.data[0].url) || '';
+                  }catch(_){
+                    const match = (raw || '').match(/https?:\/\/[^\s"']+/);
+                    parsedUrl = match ? match[0] : '';
+                  }
+                  resolve(parsedUrl || '#');
                 }catch(err){ reject(err); }
               };
               reader.onerror = ()=>reject(new Error('File read error'));
               reader.readAsDataURL(file);
             });
-            uploadList.removeChild(itemDiv);
-            renderItem(file.name, url);
+            // Update the same row in place to show link and delete button
+            const idx = testRequestUploads.length;
+            testRequestUploads.push({ name: file.name, url });
+            rowDiv.innerHTML = `
+              <span>📄<span class=\"ml-2\">${file.name}</span></span>
+              <span class=\"text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs\">Đã tải lên</span>
+              <span class=\"flex items-center gap-3\">
+                <a href=\"${url}\" target=\"_blank\" class=\"text-primary-blue underline\">Xem</a>
+                <button class=\"ml-2 text-red-600 hover:underline font-bold\" type=\"button\">X</button>
+              </span>
+            `;
+            rowDiv.querySelector('button').onclick = ()=>{
+              rowDiv.remove();
+              testRequestUploads[idx] = null;
+            };
           }catch(err){
-            itemDiv.querySelector('.spinner').outerHTML = `<span class=\"text-red-600\">Thất bại</span>`;
-            setTimeout(()=>{ try{ uploadList.removeChild(itemDiv);}catch(_){} }, 2000);
+            const spinnerEl = rowDiv.querySelector('.spinner');
+            if (spinnerEl) spinnerEl.outerHTML = `<span class=\"text-red-600\">Thất bại</span>`;
+            setTimeout(()=>{ try{ uploadList.removeChild(rowDiv);}catch(_){} }, 2000);
           }
         }
         this.value = '';
