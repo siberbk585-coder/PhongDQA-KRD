@@ -181,7 +181,7 @@
         <!-- Keep data after submit -->
         <label class="mt-3 flex items-center text-sm text-gray-600">
           <input type="checkbox" id="keepDataAfterSubmit" class="mr-2">
-          Giữ dữ liệu sau khi gửi
+          Giữ dữ liệu sau khi gửi. (Dữ liệu đã nhập sẽ không bị xóa sau khi nhấn gửi)
         </label>
         <button type="submit" class="submit-btn w-full mt-4 py-3 text-white font-semibold text-lg transition flex items-center justify-center gap-2">
           <span>Gửi yêu cầu</span>
@@ -190,21 +190,41 @@
       </form>
     </section>
     <!-- Task Tracking -->
-    <section id="taskTracking" class="form-section w-full max-w-6xl bg-white p-8 rounded-lg shadow-md hidden">
+    <section id="taskTracking" class="form-section w-full max-w-7xl bg-white p-8 rounded-lg shadow-md hidden">
       <div class="mb-8">
         <h2 class="text-3xl font-extrabold text-primary-blue tracking-wide mb-1">Theo dõi Công việc</h2>
         <div class="h-1 w-16 bg-primary-blue mb-2 rounded"></div>
         <p class="text-base text-gray-500">Theo dõi các công việc đã gửi kèm trạng thái và thời hạn đáp ứng.</p>
       </div>
-      <form id="taskTrackingForm" class="mb-8 space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input required name="senderEmail" type="email" placeholder="Email người gửi *" class="input-field"/>
-          <select required name="department" class="input-field">
-            <option value="">Phòng ban yêu cầu *</option>
-             <option>Mua hàng</option><option>SC</option><option>SC2</option><option>KTSX</option><option>KTSP</option>
-            <option>TKCK</option><option>KTCN</option><option>NCTN</option><option>TKĐT</option>
-            <option>QA/QC nhà máy</option><option>DQA</option>
-          </select>
+      <form id="taskTrackingForm" class="mb-8 space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Email người gửi</label>
+            <input name="senderEmail" type="email" placeholder="Nhập email người gửi" class="input-field h-12"/>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Phòng ban yêu cầu</label>
+            <select name="department" class="input-field h-12">
+              <option value="">Chọn phòng ban</option>
+               <option>Mua hàng</option><option>SC</option><option>SC2</option><option>KTSX</option><option>KTSP</option>
+              <option>TKCK</option><option>KTCN</option><option>NCTN</option><option>TKĐT</option>
+              <option>QA/QC nhà máy</option><option>DQA</option>
+            </select>
+          </div>
+        </div>
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-blue-700">
+                <span class="font-medium">Lưu ý:</span> Phải nhập ít nhất một trong hai trường trên để tìm kiếm.
+              </p>
+            </div>
+          </div>
         </div>
         <!-- Response field mapping params (backend can use these to shape response) -->
         <div class="hidden">
@@ -214,25 +234,27 @@
           <input type="hidden" name="resp_ngay_hoan_thanh" value="completionDate" />
           <input type="hidden" name="resp_phu_trach" value="pic" />
           <input type="hidden" name="resp_trang_thai" value="status" />
+          <input type="hidden" name="resp_nguoi_giao_viec" value="assigner" />
         </div>
         <div class="flex justify-end">
-          <button id="taskTrackingSearchBtn" type="submit" class="submit-btn px-4 py-2 rounded text-white font-bold transition">Tìm kiếm</button>
+          <button id="taskTrackingSearchBtn" type="submit" class="submit-btn px-8 py-3 rounded-lg text-white font-semibold transition text-base">🔍 Tìm kiếm</button>
         </div>
       </form>
-      <div class="overflow-x-auto shadow rounded-lg">
+      <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
         <table id="trackingTable" class="min-w-full text-sm border-collapse">
           <thead>
-            <tr class="bg-primary-blue text-white">
-              <th class="px-4 py-2 text-left">Ngày gửi</th>
-              <th class="px-4 py-2 text-left">Hạn mong muốn</th>
-              <th class="px-4 py-2 text-left">Hạn đáp ứng</th>
-              <th class="px-4 py-2 text-left">Tên công việc</th>
-              <th class="px-4 py-2 text-left">Phụ trách</th>
-              <th class="px-4 py-2 text-left">Trạng thái</th>
+            <tr class="bg-gradient-to-r from-primary-blue to-blue-600 text-white">
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Người yêu cầu</th>
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Ngày gửi</th>
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Hạn mong muốn</th>
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Hạn đáp ứng</th>
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Tên công việc</th>
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Phụ trách</th>
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Trạng thái</th>
             </tr>
           </thead>
-          <tbody id="trackingTableBody" class="bg-white text-gray-900">
-            <tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>
+          <tbody id="trackingTableBody" class="bg-white text-gray-900 divide-y divide-gray-200">
+            <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500 text-base">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>
           </tbody>
         </table>
       </div>
@@ -504,21 +526,23 @@
           const submissionRound = parseInt(data.sampleSubmissionNo || '0', 10) || 0;
           const normalizedRequestDate = (data.requestDate || '').toString().slice(0,10);
           const normalizedDesiredDate = (data.desiredCompletionDate || '').toString().slice(0,10);
+          
+          // Ensure all required fields have valid values
           const mapped = {
-            requesterName: data.senderName || '',
-            email: data.senderEmail || '',
-            requestDate: normalizedRequestDate,
-            deptRequest: data.department || '',
-            itemName: data.productName || '',
-            itemCode: data.productCode || '',
-            purpose: data.requestPurpose || '',
-            vendor: data.supplier || '',
-            qtySamples: data.numSamples || '',
-            desiredDate: normalizedDesiredDate,
-            changeReq: data.notes || '',
+            requesterName: String(data.senderName || '').trim(),
+            email: String(data.senderEmail || '').trim(),
+            requestDate: String(normalizedRequestDate || '').trim(),
+            deptRequest: String(data.department || '').trim(),
+            itemName: String(data.productName || '').trim(),
+            itemCode: String(data.productCode || '').trim(),
+            purpose: String(data.requestPurpose || '').trim(),
+            vendor: String(data.supplier || '').trim(),
+            qtySamples: String(data.numSamples || '').trim(),
+            desiredDate: String(normalizedDesiredDate || '').trim(),
+            changeReq: String(data.notes || '').trim(),
             kiemtraDefault: isSpecial ? '0' : '1',
             kiemtraDacBiet: isSpecial ? '1' : '0',
-            Receiver: data.personReceived || '',
+            Receiver: String(data.personReceived || '').trim(),
             isResubmission: submissionRound >= 2 ? '1' : '0',
             // Legacy checkbox fields kept for schema compatibility but left empty
             chiSoCoBan: '0',
@@ -532,13 +556,16 @@
             khacTest: '0',
             khacTestDesc: '',
             // Replaced group by a single field as requested
-            SpecialReq: isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '',
-            attachments: data.attachments || '',
-            // attachmentUrls removed from payload per provided schema
+            SpecialReq: String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim(),
+            attachments: String(data.attachments || '').trim()
           };
-          // Sanitize to flat string values (SheetDB expects flat string cells)
+          
+          // Ensure all fields are present and have valid string values
           const flat = {};
-          Object.keys(mapped).forEach(k=>{ flat[k] = mapped[k] == null ? '' : String(mapped[k]); });
+          Object.keys(mapped).forEach(k => { 
+            flat[k] = mapped[k] || ''; // Use empty string for null/undefined/empty values
+          });
+          
           reqBody = { data: [flat] };
         } else {
           // other forms unchanged
@@ -666,6 +693,16 @@
 
       document.getElementById('taskTrackingForm').onsubmit = async function(e){
       e.preventDefault();
+        
+        // Validation: At least one of email or department must be filled
+        const email = this.querySelector('input[name="senderEmail"]').value.trim();
+        const department = this.querySelector('select[name="department"]').value.trim();
+        
+        if (!email && !department) {
+          alert('Vui lòng nhập ít nhất một trong hai trường: Email hoặc Phòng ban');
+          return;
+        }
+        
         const btn = document.getElementById('taskTrackingSearchBtn') || this.querySelector("button[type=submit]");
         const originalSearchLabel = btn ? btn.textContent : "Tìm kiếm";
         if (btn) {
@@ -673,7 +710,7 @@
           btn.innerHTML = "<span class='spinner'></span><span class='ml-2'>Đang tìm...</span>";
         }
         const bodyEl = document.getElementById('trackingTableBody');
-        bodyEl.innerHTML = "<tr><td colspan='6' class='px-4 py-4 text-center text-gray-500'><span class='spinner mr-2'></span>Đang tải...</td></tr>";
+        bodyEl.innerHTML = "<tr><td colspan='7' class='px-4 py-4 text-center text-gray-500'><span class='spinner mr-2'></span>Đang tải...</td></tr>";
 
         // Build filter from form
         const formData = new FormData(this);
@@ -687,16 +724,28 @@
           completionDate: filter.resp_ngay_hoan_thanh || 'completionDate',
           pic: filter.resp_phu_trach || 'pic',
           status: filter.resp_trang_thai || 'status',
+          assigner: filter.resp_nguoi_giao_viec || 'assigner',
         };
 
         try {
           // Use GET with query params per webhook requirement
           const params = new URLSearchParams();
+          
+          // Add form fields to query params (excluding response mapping fields)
           Object.keys(filter).forEach(k=>{
             if (filter[k] !== undefined && filter[k] !== null) {
-              if (!k.startsWith('resp_')) params.append(k, filter[k]);
+              if (!k.startsWith('resp_')) {
+                // Map form field names to backend field names
+                const fieldMapping = {
+                  'senderEmail': 'requester_email',
+                  'department': 'requester_department'
+                };
+                const paramName = fieldMapping[k] || k;
+                params.append(paramName, filter[k]);
+              }
             }
           });
+          
           // send response mapping using safe param names
           const mappingParamMap = {
             resp_ngay_gui: 'field_submission_date',
@@ -704,7 +753,8 @@
             resp_han_mong_muon: 'field_desired_due_date',
             resp_ngay_hoan_thanh: 'field_completion_date',
             resp_phu_trach: 'field_pic',
-            resp_trang_thai: 'field_status'
+            resp_trang_thai: 'field_status',
+            resp_nguoi_giao_viec: 'field_assigner'
           };
           Object.keys(mappingParamMap).forEach(src=>{
             if (filter[src]) params.append(mappingParamMap[src], filter[src]);
@@ -731,9 +781,10 @@
                      : [];
 
           if (!rows.length) {
-            bodyEl.innerHTML = "<tr><td colspan='6' class='px-4 py-6 text-center text-gray-500'>Không có dữ liệu</td></tr>";
+            bodyEl.innerHTML = "<tr><td colspan='7' class='px-4 py-6 text-center text-gray-500'>Không có dữ liệu</td></tr>";
           } else {
             const html = rows.map(r=>{
+              const assigner = getCaseInsensitive(r, [map.assigner,'assigner','nguoiGiaoViec','assignedTo']) || '-';
               const submissionDate = toDDMMYYYY(getCaseInsensitive(r, [map.submissionDate,'ngayGui','createdAt','created_at'])) || '-';
               const taskName = getCaseInsensitive(r, [map.taskName,'tenCongViec','name','title']) || '-';
               const desiredDue = toDDMMYYYY(getCaseInsensitive(r, [map.desiredDueDate,'hanMongMuon','dueDate','due_date'])) || '-';
@@ -742,6 +793,7 @@
               const status = getCaseInsensitive(r, [map.status,'trangThai']) || '';
               return `
                 <tr>
+                  <td class="px-4 py-2">${assigner}</td>
                   <td class="px-4 py-2">${submissionDate}</td>
                   <td class="px-4 py-2">${desiredDue}</td>
                   <td class="px-4 py-2">${doneDate}</td>
@@ -753,7 +805,7 @@
             bodyEl.innerHTML = html;
           }
         } catch (err) {
-          bodyEl.innerHTML = `<tr><td colspan='6' class='px-4 py-6 text-center text-red-600'>Lỗi khi tải dữ liệu: ${String(err.message || err)}</td></tr>`;
+          bodyEl.innerHTML = `<tr><td colspan='7' class='px-4 py-6 text-center text-red-600'>Lỗi khi tải dữ liệu: ${String(err.message || err)}</td></tr>`;
         } finally {
           if (btn) { btn.disabled = false; btn.textContent = originalSearchLabel || 'Tìm kiếm'; }
         }
@@ -763,4 +815,3 @@
   </script>
 </body>
 </html>
-
