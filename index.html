@@ -589,7 +589,7 @@
             flat[k] = mapped[k] || ''; // Use empty string for null/undefined/empty values
           });
           
-          reqBody = { data: [flat] };
+          reqBody = { data: flat };
         } else {
           // other forms unchanged
           reqBody = { data: [data] };
@@ -625,23 +625,23 @@
             try {
               const isSpecial = data.testType === 'special';
               const noteCombined = `${data.notes || ''}${isSpecial ? `\nSpecialreq: ${(document.getElementById('specialRequestDesc')?.value || '')}` : ''}`.trim();
+              const normalizedRequestDate2 = (data.requestDate || '').toString().slice(0,10);
+              const normalizedDesiredDate2 = (data.desiredCompletionDate || '').toString().slice(0,10);
               const basic = {
                 requesterName: String(data.senderName || ''),
                 email: String(data.senderEmail || ''),
-                requestDate: String(data.requestDate || ''),
+                requestDate: String(normalizedRequestDate2 || ''),
                 deptRequest: String(data.department || ''),
                 itemName: String(data.productName || ''),
                 itemCode: String(data.productCode || ''),
                 purpose: String(data.requestPurpose || ''),
                 vendor: String(data.supplier || ''),
                 qtySamples: String(data.numSamples || ''),
-                desiredDate: String(data.desiredCompletionDate || ''),
+                desiredDate: String(normalizedDesiredDate2 || ''),
                 changeReq: noteCombined,
-                kiemtraDefault: isSpecial ? '0' : '1',
-                kiemtraDacBiet: isSpecial ? '1' : '0',
                 attachments: String(data.attachments || '')
               };
-              const fallbackBody = { data: [basic] };
+              const fallbackBody = { data: basic };
               const resp2 = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
