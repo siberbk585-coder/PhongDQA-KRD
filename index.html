@@ -148,7 +148,8 @@
             <div id="purposeDescription" class="text-gray-600 text-sm md:col-span-2"></div>
             <input name="supplier" required type="text" placeholder="Nhà cung cấp *" class="input-field"/>
             <input name="numSamples" type="number" min="0" placeholder="Số lượng mẫu giao *" required class="input-field"/>
-            <input name="desiredCompletionDate" type="date" placeholder="Thời hạn mong muốn có kết quả *" required class="input-field"/>
+            <input id="desiredCompletionDate" name="desiredCompletionDate" type="text" placeholder="Hạn mong muốn" required class="input-field"/>
+            <input type="hidden" name="desiredCompletionDateTime" id="desiredCompletionDateTime" />
             <select name="personReceived" required class="input-field">
               <option value="">Chọn người đã nhận mẫu *</option>
               <option>Vũ Duy Minh</option>
@@ -284,6 +285,8 @@
       background: #e5e7eb; /* gray-200 */
       color: #6b7280; /* gray-500 */
     }
+    /* style for input-as-text date field (per reference) */
+    .date-text-placeholder::placeholder { color: #6b7280; }
   </style>
   <!-- JavaScript for dynamic logic/features -->
   <script>
@@ -317,6 +320,54 @@
       if (el) el.value = localISO;
     }
     setCurrentDateTime('testRequestDate');
+    
+    // Desired date constraints and hidden datetime submission
+    (function setupDesiredDateField(){
+      const input = document.getElementById('desiredCompletionDate');
+      const hiddenDateTime = document.getElementById('desiredCompletionDateTime');
+      if (!input || !hiddenDateTime) return;
+      // Convert to date on focus/click and set range today..+32
+      function toYMD(d){
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+      function setRange(el){
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const end = new Date(start); end.setDate(end.getDate() + 32);
+        el.min = toYMD(start);
+        el.max = toYMD(end);
+      }
+      function ensureDateMode(){
+        if (input.type !== 'date') {
+          input.type = 'date';
+          setRange(input);
+          try { if (input.showPicker) input.showPicker(); } catch(_){}
+        }
+      }
+      input.addEventListener('focus', ensureDateMode);
+      input.addEventListener('click', ensureDateMode);
+      input.addEventListener('blur', ()=>{
+        if (!input.value) {
+          input.type = 'text';
+          input.removeAttribute('min');
+          input.removeAttribute('max');
+        }
+      });
+      function updateHidden(){
+        if (!input.value) { hiddenDateTime.value = ''; return; }
+        const [y,m,d] = input.value.split('-').map(Number);
+        if (!y || !m || !d) { hiddenDateTime.value = ''; return; }
+        const now = new Date();
+        const dt = new Date(y, m-1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+        hiddenDateTime.value = dt.toISOString();
+      }
+      input.addEventListener('change', updateHidden);
+      input.addEventListener('input', updateHidden);
+      updateHidden();
+    })();
 
     // Dynamic fields logic for Test Request Form
     // a. Purpose dropdown description
@@ -549,39 +600,38 @@
           const submissionRound = parseInt(data.sampleSubmissionNo || '0', 10) || 0;
           const normalizedRequestDate = (data.requestDate || '').toString().slice(0,10);
           const normalizedDesiredDate = (data.desiredCompletionDate || '').toString().slice(0,10);
+          const desiredDateTimeISO = String(data.desiredCompletionDateTime || '').trim();
           
-          // Ensure all required fields have valid values
-          const mapped = {
-            requesterName: String(data.senderName || '').trim(),
-            email: String(data.senderEmail || '').trim(),
-            requestDate: String(normalizedRequestDate || '').trim(),
-            deptRequest: String(data.department || '').trim(),
-            itemName: String(data.productName || '').trim(),
-            itemCode: String(data.productCode || '').trim(),
-            purpose: String(data.requestPurpose || '').trim(),
-            vendor: String(data.supplier || '').trim(),
-            qtySamples: String(data.numSamples || '').trim(),
-            desiredDate: String(normalizedDesiredDate || '').trim(),
-            changeReq: String(data.notes || '').trim(),
-            kiemtraDefault: isSpecial ? '0' : '1',
-            kiemtraDacBiet: isSpecial ? '1' : '0',
-            Receiver: String(data.personReceived || '').trim(),
-            isResubmission: submissionRound >= 2 ? '1' : '0',
-            // Legacy checkbox fields kept for schema compatibility but left empty
-            chiSoCoBan: '0',
-            chiSoCoBanDesc: '',
-            tinhNang: '0',
-            tinhNangDesc: '',
-            diemNG: '0',
-            diemNGDesc: '',
-            testBen: '0',
-            testBenDesc: '',
-            khacTest: '0',
-            khacTestDesc: '',
-            // Replaced group by a single field as requested
-            SpecialReq: String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim(),
-            attachments: String(data.attachments || '').trim()
-          };
+          // Ensure all required fields have valid values and include ONLY allowed columns
+          const mapped = {};
+          // Build in exact required order
+          mapped.requesterName = String(data.senderName || '').trim();
+          mapped.email = String(data.senderEmail || '').trim();
+          mapped.requestDate = String(normalizedRequestDate || '').trim();
+          mapped.deptRequest = String(data.department || '').trim();
+          mapped.itemName = String(data.productName || '').trim();
+          mapped.itemCode = String(data.productCode || '').trim();
+          mapped.purpose = String(data.requestPurpose || '').trim();
+          mapped.vendor = String(data.supplier || '').trim();
+          mapped.qtySamples = String(data.numSamples || '').trim();
+          mapped.desiredDate = String(normalizedDesiredDate || '').trim();
+          mapped.changeReq = String(data.notes || '').trim();
+          mapped.kiemtraDefault = isSpecial ? '0' : '1';
+          mapped.kiemtraDacBiet = isSpecial ? '1' : '0';
+          mapped.chiSoCoBan = '0';
+          mapped.chiSoCoBanDesc = '';
+          mapped.tinhNang = '0';
+          mapped.tinhNangDesc = '';
+          mapped.diemNG = '0';
+          mapped.diemNGDesc = '';
+          mapped.testBen = '0';
+          mapped.testBenDesc = '';
+          mapped.khacTest = '0';
+          mapped.khacTestDesc = '';
+          mapped.attachments = String(data.attachments || '').trim();
+          mapped.SpecialReq = String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim();
+          mapped.Receiver = String(data.personReceived || '').trim();
+          mapped.isResubmission = submissionRound >= 2 ? '1' : '0';
           
           // Ensure all fields are present and have valid string values
           const flat = {};
@@ -589,7 +639,7 @@
             flat[k] = mapped[k] || ''; // Use empty string for null/undefined/empty values
           });
           
-          reqBody = { data: flat };
+          reqBody = { data: [flat] };
         } else {
           // other forms unchanged
           reqBody = { data: [data] };
@@ -627,21 +677,36 @@
               const noteCombined = `${data.notes || ''}${isSpecial ? `\nSpecialreq: ${(document.getElementById('specialRequestDesc')?.value || '')}` : ''}`.trim();
               const normalizedRequestDate2 = (data.requestDate || '').toString().slice(0,10);
               const normalizedDesiredDate2 = (data.desiredCompletionDate || '').toString().slice(0,10);
-              const basic = {
-                requesterName: String(data.senderName || ''),
-                email: String(data.senderEmail || ''),
-                requestDate: String(normalizedRequestDate2 || ''),
-                deptRequest: String(data.department || ''),
-                itemName: String(data.productName || ''),
-                itemCode: String(data.productCode || ''),
-                purpose: String(data.requestPurpose || ''),
-                vendor: String(data.supplier || ''),
-                qtySamples: String(data.numSamples || ''),
-                desiredDate: String(normalizedDesiredDate2 || ''),
-                changeReq: noteCombined,
-                attachments: String(data.attachments || '')
-              };
-              const fallbackBody = { data: basic };
+              // Send the same exact set of columns in fallback as well
+              const basic = {};
+              basic.requesterName = String(data.senderName || '').trim();
+              basic.email = String(data.senderEmail || '').trim();
+              basic.requestDate = String(normalizedRequestDate2 || '').trim();
+              basic.deptRequest = String(data.department || '').trim();
+              basic.itemName = String(data.productName || '').trim();
+              basic.itemCode = String(data.productCode || '').trim();
+              basic.purpose = String(data.requestPurpose || '').trim();
+              basic.vendor = String(data.supplier || '').trim();
+              basic.qtySamples = String(data.numSamples || '').trim();
+              basic.desiredDate = String(normalizedDesiredDate2 || '').trim();
+              basic.changeReq = noteCombined;
+              basic.kiemtraDefault = isSpecial ? '0' : '1';
+              basic.kiemtraDacBiet = isSpecial ? '1' : '0';
+              basic.chiSoCoBan = '0';
+              basic.chiSoCoBanDesc = '';
+              basic.tinhNang = '0';
+              basic.tinhNangDesc = '';
+              basic.diemNG = '0';
+              basic.diemNGDesc = '';
+              basic.testBen = '0';
+              basic.testBenDesc = '';
+              basic.khacTest = '0';
+              basic.khacTestDesc = '';
+              basic.attachments = String(data.attachments || '').trim();
+              basic.SpecialReq = String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim();
+              basic.Receiver = String(data.personReceived || '').trim();
+              basic.isResubmission = (parseInt(data.sampleSubmissionNo || '0',10) || 0) >= 2 ? '1' : '0';
+              const fallbackBody = { data: [basic] };
               const resp2 = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -806,7 +871,23 @@
           if (!rows.length) {
             bodyEl.innerHTML = "<tr><td colspan='7' class='px-4 py-6 text-center text-gray-500'>Không có dữ liệu</td></tr>";
           } else {
-            const html = rows.map(r=>{
+            // Sort rows: empty status first, then doing/progress/đang, then others
+            function statusWeight(raw){
+              const s = (raw || "").toString().toLowerCase().trim();
+              if (!s) return 0; // empty first
+              if (s.includes('doing') || s.includes('progress') || s.includes('đang')) return 1; // doing second
+              return 2; // others last
+            }
+            function getRawStatus(rec){
+              return getCaseInsensitive(rec, [map.status,'status','trangThai']);
+            }
+            const rowsSorted = rows.slice().sort((a,b)=>{
+              const wa = statusWeight(getRawStatus(a));
+              const wb = statusWeight(getRawStatus(b));
+              if (wa !== wb) return wa - wb;
+              return 0;
+            });
+            const html = rowsSorted.map(r=>{
               const assigner = getCaseInsensitive(r, [map.assigner,'assigner','nguoiGiaoViec','assignedTo']) || '-';
               const submissionDate = toDDMMYYYY(getCaseInsensitive(r, [map.submissionDate,'ngayGui','createdAt','created_at'])) || '-';
               const taskName = getCaseInsensitive(r, [map.taskName,'tenCongViec','name','title']) || '-';
