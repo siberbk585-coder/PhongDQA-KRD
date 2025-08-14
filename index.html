@@ -236,6 +236,7 @@
           <input type="hidden" name="resp_phu_trach" value="pic" />
           <input type="hidden" name="resp_trang_thai" value="status" />
           <input type="hidden" name="resp_nguoi_giao_viec" value="assigner" />
+          <input type="hidden" name="resp_ma_bao_cao" value="reportCode" />
         </div>
         <div class="flex justify-end">
           <button id="taskTrackingSearchBtn" type="submit" class="submit-btn px-8 py-3 rounded-lg text-white font-semibold transition text-base">🔍 Tìm kiếm</button>
@@ -252,10 +253,11 @@
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Tên công việc</th>
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Phụ trách</th>
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Trạng thái</th>
+              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Mã báo cáo</th>
             </tr>
           </thead>
           <tbody id="trackingTableBody" class="bg-white text-gray-900 divide-y divide-gray-200">
-            <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500 text-base">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>
+            <tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>
           </tbody>
         </table>
       </div>
@@ -805,7 +807,7 @@
         const filter = {};
         formData.forEach((v,k)=>{ filter[k] = v; });
         // Build response field mapping from form (allow backend to choose keys; also used client-side)
-        const map = {
+          const map = {
           submissionDate: filter.resp_ngay_gui || 'submissionDate',
           taskName: filter.resp_ten_cong_viec || 'taskName',
           desiredDueDate: filter.resp_han_mong_muon || 'desiredDueDate',
@@ -813,6 +815,7 @@
           pic: filter.resp_phu_trach || 'pic',
           status: filter.resp_trang_thai || 'status',
           assigner: filter.resp_nguoi_giao_viec || 'assigner',
+            reportCode: filter.resp_ma_bao_cao || 'reportCode',
         };
 
         try {
@@ -842,7 +845,8 @@
             resp_ngay_hoan_thanh: 'field_completion_date',
             resp_phu_trach: 'field_pic',
             resp_trang_thai: 'field_status',
-            resp_nguoi_giao_viec: 'field_assigner'
+            resp_nguoi_giao_viec: 'field_assigner',
+            resp_ma_bao_cao: 'field_report_code'
           };
           Object.keys(mappingParamMap).forEach(src=>{
             if (filter[src]) params.append(mappingParamMap[src], filter[src]);
@@ -893,6 +897,7 @@
               const taskName = getCaseInsensitive(r, [map.taskName,'tenCongViec','name','title']) || '-';
               const desiredDue = toDDMMYYYY(getCaseInsensitive(r, [map.desiredDueDate,'hanMongMuon','dueDate','due_date'])) || '-';
               const doneDate = toDDMMYYYY(getCaseInsensitive(r, [map.completionDate,'ngayHoanThanh','completedAt','completed_at'])) || '-';
+              const reportCode = getCaseInsensitive(r, [map.reportCode,'reportCode','maBaoCao','report_code']) || '-';
               const pic = getCaseInsensitive(r, [map.pic,'phuTrach','owner','assignee']) || '-';
               const status = getCaseInsensitive(r, [map.status,'trangThai']) || '';
               return `
@@ -904,6 +909,7 @@
                   <td class="px-4 py-2">${taskName}</td>
                   <td class="px-4 py-2">${pic}</td>
                   <td class="px-4 py-2">${renderStatusBadge(status)}</td>
+                  <td class="px-4 py-2">${reportCode}</td>
                 </tr>`;
             }).join('');
             bodyEl.innerHTML = html;
@@ -919,4 +925,3 @@
   </script>
 </body>
 </html>
-
