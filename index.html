@@ -659,44 +659,43 @@
             throw new Error(text || `HTTP ${resp.status}`);
           }
         }catch(err){
-          // Fallback: gửi lại với đúng 20 cột yêu cầu
+          // Fallbacks cho lỗi "Bad data format" của SheetDB
           if (formId === 'testRequestForm' && /bad data format/i.test(String(err.message || err))) {
             try {
               const isSpecial = data.testType === 'special';
               const normalizedRequestDate2 = (data.requestDate || '').toString().slice(0,10);
               const normalizedDesiredDate2 = (data.desiredCompletionDate || '').toString().slice(0,10);
 
-              const fallbackBody = {
-                data: [{
-                  requesterName: String(data.senderName || '').trim(),
-                  email: String(data.senderEmail || '').trim(),
-                  requestDate: String(normalizedRequestDate2 || '').trim(),
-                  deptRequest: String(data.department || '').trim(),
-                  itemName: String(data.productName || '').trim(),
-                  itemCode: String(data.productCode || '').trim(),
-                  purpose: String(data.requestPurpose || '').trim(),
-                  vendor: String(data.supplier || '').trim(),
-                  qtySamples: String(data.numSamples || '').trim(),
-                  desiredDate: String(normalizedDesiredDate2 || '').trim(),
-                  changeReq: String(data.notes || '').trim(),
-                  kiemtraDefault: isSpecial ? '0' : '1',
-                  kiemtraDacBiet: isSpecial ? '1' : '0',
-                  attachments: String(data.attachments || '').trim(),
-                  SpecialReq: String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim(),
-                  Receiver: String(data.personReceived || '').trim(),
-                  isResubmission: (parseInt(data.sampleSubmissionNo || '0',10) || 0) >= 2 ? '1' : '0',
-                  Score: '',
-                  Odoojira: '',
-                  Assignee: ''
-                }]
+              const fallbackObject = {
+                requesterName: String(data.senderName || '').trim(),
+                email: String(data.senderEmail || '').trim(),
+                requestDate: String(normalizedRequestDate2 || '').trim(),
+                deptRequest: String(data.department || '').trim(),
+                itemName: String(data.productName || '').trim(),
+                itemCode: String(data.productCode || '').trim(),
+                purpose: String(data.requestPurpose || '').trim(),
+                vendor: String(data.supplier || '').trim(),
+                qtySamples: String(data.numSamples || '').trim(),
+                desiredDate: String(normalizedDesiredDate2 || '').trim(),
+                changeReq: String(data.notes || '').trim(),
+                kiemtraDefault: isSpecial ? '0' : '1',
+                kiemtraDacBiet: isSpecial ? '1' : '0',
+                attachments: String(data.attachments || '').trim(),
+                SpecialReq: String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim(),
+                Receiver: String(data.personReceived || '').trim(),
+                isResubmission: (parseInt(data.sampleSubmissionNo || '0',10) || 0) >= 2 ? '1' : '0',
+                Score: '',
+                Odoojira: '',
+                Assignee: ''
               };
 
-              const resp2 = await fetch(endpoint, {
+              // 1) Thử payload single-object (một số cấu hình SheetDB chấp nhận dạng này)
+              const respObj = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify(fallbackBody)
+                body: JSON.stringify({ data: fallbackObject })
               });
-              if (resp2.ok) {
+              if (respObj.ok) {
                 btn.innerHTML = 'Đã gửi!';
                 btn.classList.add('bg-green-600');
                 setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;btn.classList.remove('bg-green-600')},20000);
@@ -710,10 +709,56 @@
                   }
                 }
                 return;
-              } else {
-                const t2 = await resp2.text();
-                throw new Error(t2 || `HTTP ${resp2.status}`);
               }
+
+              // 2) Thử payload x-www-form-urlencoded
+              const formEncoded = new URLSearchParams();
+              formEncoded.append('data', JSON.stringify(fallbackObject));
+              const respForm = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                body: formEncoded.toString()
+              });
+              if (respForm.ok) {
+                btn.innerHTML = 'Đã gửi!';
+                btn.classList.add('bg-green-600');
+                setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;btn.classList.remove('bg-green-600')},20000);
+                if(!document.getElementById('keepDataAfterSubmit')?.checked){
+                  this.reset();
+                  const dtEl = document.getElementById('testRequestDate');
+                  if (dtEl) {
+                    const now = new Date();
+                    const tz = now.getTimezoneOffset() * 60000;
+                    dtEl.value = new Date(now.getTime() - tz).toISOString().slice(0, 16);
+                  }
+                }
+                return;
+              }
+
+              // 3) Cuối cùng, thử lại dạng mảng objects (chuẩn SheetDB)
+              const respArr = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ data: [fallbackObject] })
+              });
+              if (respArr.ok) {
+                btn.innerHTML = 'Đã gửi!';
+                btn.classList.add('bg-green-600');
+                setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;btn.classList.remove('bg-green-600')},20000);
+                if(!document.getElementById('keepDataAfterSubmit')?.checked){
+                  this.reset();
+                  const dtEl = document.getElementById('testRequestDate');
+                  if (dtEl) {
+                    const now = new Date();
+                    const tz = now.getTimezoneOffset() * 60000;
+                    dtEl.value = new Date(now.getTime() - tz).toISOString().slice(0, 16);
+                  }
+                }
+                return;
+              }
+
+              const t3 = await respArr.text();
+              throw new Error(t3 || 'Fallbacks failed');
             } catch (e2) {
               alert('Gửi thất bại (fallback): ' + e2);
             }
