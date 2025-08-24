@@ -637,7 +637,15 @@
           .filter(x=>x.s > 0 || !q)
           .sort((a,b)=> b.s - a.s || a.name.localeCompare(b.name));
         const take = (q ? ranked.slice(0, 20) : items.slice(0, 50));
-        compList.innerHTML = take.map(i=>`<option value="${i.name}"></option>`).join('');
+        const otherName = 'Linh kiện khác';
+        const names = take.map(i=>i.name);
+        if (!names.includes(otherName)) names.push(otherName);
+        compList.innerHTML = names.map(n=>`<option value="${n}"></option>`).join('');
+        // If no suggestions match and field is empty, default to "Linh kiện khác"
+        if (q && ranked.length === 0 && !compInput.value) {
+          compInput.value = otherName;
+          try { compInput.dispatchEvent(new Event('input')); } catch(_){ }
+        }
         // If current componentType empty and there is a strong candidate, prefill suggestion (not forced)
         if (!compInput.value && q && ranked.length && ranked[0].s >= 2) {
           compInput.setAttribute('placeholder', `Gợi ý: ${ranked[0].name}`);
@@ -1215,8 +1223,6 @@
   </script>
 </body>
 </html>
-
-
 
 
 
