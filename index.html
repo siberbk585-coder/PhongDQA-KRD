@@ -86,6 +86,7 @@
     <nav class="flex flex-col gap-2 mt-2">
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="testRequest">Phiếu Yêu Cầu Thử Nghiệm</button>
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="taskTracking">Theo dõi Công việc</button>
+      <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="userGuide">Hướng dẫn sử dụng</button>
       
     </nav>
   </aside>
@@ -102,7 +103,7 @@
       </div>
     </div>
     <!-- Test Request Form -->
-    <section id="testRequest" class="form-section w-full max-w-4xl bg-white p-8 rounded-lg shadow-md hidden">
+    <section id="testRequest" class="form-section w-full max-w-4xl bg-white p-8 rounded-lg shadow-md">
       <div class="mb-8">
         <h2 class="text-3xl font-extrabold text-primary-blue tracking-wide mb-1">Phiếu Yêu Cầu Thử Nghiệm</h2>
         <div class="h-1 w-16 bg-primary-blue mb-2 rounded"></div>
@@ -113,12 +114,16 @@
         <div class="section-card section-a">
           <h3 class="text-lg font-semibold text-primary-blue mb-2">A. Thông tin chung</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input required name="senderName" type="text" placeholder="Họ tên người gửi *" class="input-field"/>
+            <div>
+              <input required id="senderName" name="senderName" type="text" list="senderNameOptions" placeholder="Họ tên người gửi *" class="input-field"/>
+              <datalist id="senderNameOptions"></datalist>
+            </div>
             <input required name="senderEmail" type="email" placeholder="Email *" class="input-field"/>
             <input name="requestDate" type="datetime-local" class="input-field" readonly id="testRequestDate"/>
+            <input type="hidden" name="requestCode" id="requestCode"/>
             <select required name="department" class="input-field">
               <option value="">Phòng ban yêu cầu *</option>
-             <option>Mua hàng</option><option>SC</option><option>SC2</option><option>KTSX</option><option>KTSP</option>
+              <option>Mua hàng</option><option>SC</option><option>SC2</option><option>KTSX</option><option>KTSP</option>
               <option>TKCK</option><option>KTCN</option><option>NCTN</option><option>TKĐT</option>
               <option>QA/QC nhà máy</option><option>DQA</option>
             </select>
@@ -128,8 +133,15 @@
         <div class="section-card section-b">
           <h3 class="text-lg font-semibold text-primary-blue mb-2">B. Thông tin sản phẩm/linh kiện</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input required name="productName" type="text" placeholder="Tên sản phẩm/linh kiện *" class="input-field"/>
+            <input required id="productName" name="productName" type="text" placeholder="Tên sản phẩm/linh kiện *" class="input-field"/>
             <input required name="productCode" type="text" placeholder="Mã sản phẩm/linh kiện *" class="input-field"/>
+            <div class="md:col-span-2">
+              <input required name="componentType" id="componentType" list="componentTypeOptions" type="text" placeholder="Loại linh kiện *" class="input-field"/>
+              <datalist id="componentTypeOptions"></datalist>
+              <div class="text-xs text-gray-500 mt-1">Nếu linh kiện không có trong danh sách, nhập: "Linh kiện khác"</div>
+              <input type="hidden" name="componentStandard" id="componentStandard" />
+              <div id="componentStandardNote" class="text-sm text-gray-600 mt-1 hidden"></div>
+            </div>
             <input name="sampleSubmissionNo" id="sampleSubmissionNo" type="number" min="1" placeholder="Lần gửi mẫu " class="input-field"/>
             <div id="testRequestChangeNote" class="hidden md:col-span-2">
               <input type="text" name="changeFromLastNote" placeholder="Mô tả thay đổi so với lần trước" class="input-field"/>
@@ -147,6 +159,10 @@
               <option value="Yêu cầu từ khách hàng/bên thứ 3">Yêu cầu từ khách hàng/bên thứ 3</option>
             </select>
             <div id="purposeDescription" class="text-gray-600 text-sm md:col-span-2"></div>
+            <div id="nccChangeFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="text" id="altCode" name="altCode" class="input-field" placeholder="Mã tương tự/thay thế *" disabled />
+              <input type="text" id="appliedModel" name="appliedModel" class="input-field" placeholder="Model áp dụng *" disabled />
+            </div>
             <input name="supplier" required type="text" placeholder="Nhà cung cấp *" class="input-field"/>
             <input name="numSamples" type="number" min="0" placeholder="Số lượng mẫu giao *" required class="input-field"/>
             <input id="desiredCompletionDate" name="desiredCompletionDate" type="text" placeholder="Hạn mong muốn" required class="input-field"/>
@@ -176,9 +192,35 @@
         <!-- D. Attachments -->
         <div class="section-card section-d">
           <h3 class="text-lg font-semibold text-primary-blue mb-2">D. Tài liệu đính kèm</h3>
-          <input multiple type="file" id="testRequestFiles" class="block w-full text-sm file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-primary-blue file:text-white"/>
-          <div id="testRequestUploadList" class="mt-2 flex flex-col gap-2"></div>
-          <p class="mt-2 text-xs text-gray-500">Tên file PHẢI bằng chữ và số, không sử dụng ký tự đặc biệt để tránh lỗi.</p>
+          <div id="fileUploadArea" class="relative border-2 border-dashed border-blue-300 rounded-lg p-8 text-center transition-all duration-300 hover:border-blue-400 hover:bg-blue-50 cursor-pointer">
+            <div id="uploadContent" class="space-y-4">
+              <div class="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+              </div>
+              <div>
+                <p class="text-lg font-medium text-gray-700">Kéo thả file vào đây hoặc <span class="text-blue-600 underline">nhấn để chọn</span></p>
+                <p class="text-sm text-gray-500 mt-1">Hỗ trợ: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (tối đa 20MB mỗi file)</p>
+              </div>
+            </div>
+            <input type="file" id="testRequestFiles" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+          </div>
+          <div id="uploadProgress" class="hidden mt-4 p-4 bg-blue-50 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-blue-700">Đang tải lên...</span>
+              <span id="uploadPercent" class="text-sm text-blue-600">0%</span>
+            </div>
+            <div class="w-full bg-blue-200 rounded-full h-2">
+              <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+          <div id="testRequestUploadList" class="mt-4 space-y-3"></div>
+          <p class="mt-4 text-xs text-gray-500">
+            <span class="inline-block w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
+            Bạn có thể chọn hoặc kéo thả nhiều file. Các file sẽ được tải lên khi nhấn gửi. <br>
+            Tùy vào kích thước file đính kèm mà việc tải lên có thể mất thời gian. Xin vui lòng chờ.
+          </p>
         </div>
         <!-- Keep data after submit -->
         <label class="mt-3 flex items-center text-sm text-gray-600">
@@ -263,6 +305,21 @@
         </table>
       </div>
     </section>
+    <!-- User Guide -->
+    <section id="userGuide" class="form-section w-full max-w-4xl bg-white p-8 rounded-lg shadow-md hidden">
+      <div class="mb-8">
+        <h2 class="text-3xl font-extrabold text-primary-blue tracking-wide mb-1">Hướng dẫn sử dụng</h2>
+        <div class="h-1 w-16 bg-primary-blue mb-2 rounded"></div>
+        <p class="text-base text-gray-500">Nhấn nút bên dưới để mở tài liệu hướng dẫn.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-4">
+        <a href="https://docs.google.com/document/d/1eRC2z16alLpVfA8NYjD6teGWF94dwpnM/edit?usp=drive_link&ouid=101589232360066908244&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer"
+           class="submit-btn inline-flex items-center justify-center px-6 py-3 text-white font-semibold rounded-lg">
+          Mở tài liệu hướng dẫn
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor"><path d="M12.293 2.293a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L14 5.414V13a1 1 0 11-2 0V5.414L9.707 7.707A1 1 0 018.293 6.293l4-4z"/><path d="M3 9a1 1 0 011-1h3a1 1 0 110 2H5v6h10v-2a1 1 0 112 0v3a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/></svg>
+        </a>
+      </div>
+    </section>
     
   </main>
   <!-- Common Styles -->
@@ -290,12 +347,38 @@
     }
     /* style for input-as-text date field (per reference) */
     .date-text-placeholder::placeholder { color: #6b7280; }
+    #fileUploadArea.drag-over {
+      border-color: #3b82f6 !important;
+      background-color: #eff6ff !important;
+      transform: scale(1.02);
+    }
+    .file-item { transition: all 0.3s ease; }
+    .file-item:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
+    #progressBar { transition: width 0.3s ease; }
+    .file-preview img {
+      transition: transform 0.2s ease;
+    }
+    
+    .file-preview:hover img {
+      transform: scale(1.05);
+    }
+
+    /* Blue submit button (white text) */
+    .submit-btn {
+      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+      box-shadow: 0 4px 6px rgba(37, 99, 235, 0.1), 0 1px 3px rgba(37, 99, 235, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+      border-radius: 9999px;
+      position: relative;
+    }
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 7px 14px rgba(37, 99, 235, 0.12), 0 3px 6px rgba(37, 99, 235, 0.08); filter: brightness(1.03); }
+    .submit-btn:active { transform: translateY(0); opacity: 0.95; }
   </style>
   <!-- JavaScript for dynamic logic/features -->
   <script>
     // Endpoints for Form 1 (Test Request)
-    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/fpen5sf74dln0";
-    const UPLOAD_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxCijAALPkXShSLSUELoVhtEGDGMUwe4ZPl_jqE-xi7le_WGN5s0IOv0o5FVYpZaNmc/exec";
+    const FORM_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/03a0df2e-f7e6-47aa-bb98-756589ad8b55";
+    const FILE_UPLOAD_ENDPOINT = FORM_SUBMIT_ENDPOINT;
     // Sidebar navigation logic
     const navBtns = document.querySelectorAll('.nav-btn');
     const formSections = document.querySelectorAll('.form-section');
@@ -385,394 +468,574 @@
       "Yêu cầu từ khách hàng/bên thứ 3": "Yêu cầu xác nhận kỹ thuật theo tiêu chuẩn riêng của khách hàng/đối tác/bên thứ ba.",
     };
     document.getElementById('requestPurpose').onchange = (e)=>{
-      const desc = purposeDescriptions[e.target.value] || "";
+      const val = e.target.value || "";
+      const desc = purposeDescriptions[val] || "";
       document.getElementById('purposeDescription').textContent = desc;
+      const showNcc = /NCC/i.test(val) || /nhà\s*cung\s*cấp/i.test(val);
+      const container = document.getElementById('nccChangeFields');
+      const alt = document.getElementById('altCode');
+      const model = document.getElementById('appliedModel');
+      if (container && alt && model) {
+        container.classList.toggle('hidden', !showNcc);
+        alt.disabled = !showNcc; model.disabled = !showNcc;
+        alt.required = showNcc;  model.required = showNcc;
+      }
     };
+    try { document.getElementById('requestPurpose').dispatchEvent(new Event('change')); } catch(_) {}
     // b. Sample submission number
     document.getElementById('sampleSubmissionNo').oninput = (e)=>{
-      document.getElementById('testRequestChangeNote').classList.toggle('hidden', e.target.value < 2);
+      const need = Number(e.target.value || 0) >= 2;
+      const container = document.getElementById('testRequestChangeNote');
+      if (container) container.classList.toggle('hidden', !need);
+      const inp = container ? container.querySelector('input[name="changeFromLastNote"]') : null;
+      if (inp) inp.required = need;
     };
+    try { document.getElementById('sampleSubmissionNo').dispatchEvent(new Event('input')); } catch(_) {}
 
     // c. Special test toggle: show single required input when selected
     document.querySelectorAll('input[name="testType"]').forEach(radio=>{
-      radio.onchange = ()=>{
-        const container = document.getElementById('specialTestFields');
-        const input = document.getElementById('specialRequestDesc');
-        const show = radio.value === 'special' && radio.checked;
-        container.classList.toggle('hidden', !show);
-        if (input) input.disabled = !show;
-      };
+      radio.addEventListener('change', updateSpecialFields);
     });
-
-    // File upload widget logic (for all file fields)
-    function uploadFiles(inputId, uploadListId, endpoint, cb) {
-      const fileInput = document.getElementById(inputId);
-      const uploadList = document.getElementById(uploadListId);
-      let filesArr = [];
-      function getIcon(ext=""){ return "📄"; }
-
-      fileInput.addEventListener("change", async function(){
-        for(const file of fileInput.files){
-          const idx = filesArr.length;
-          filesArr.push({ file, state: "uploading", link: null });
-          const itemDiv = document.createElement('div');
-          itemDiv.className = "flex items-center justify-between p-2 bg-blue-50 rounded";
-          itemDiv.innerHTML = `
-            <span>${getIcon(file.name.split('.').pop())}<span class="ml-2">${file.name}</span></span>
-            <span class="spinner"></span>
-            <button class="ml-4 text-red-600 hover:underline font-bold hidden" type="button">X</button>
-          `;
-          uploadList.appendChild(itemDiv);
-
-          // Start uploading
-          const reader = new FileReader();
-          reader.onload = async function(e){
-            // Send base64 to endpoint
-            const payload = {
-              filedata: e.target.result.split(",")[1],
-              filename: file.name,
-              mimetype: file.type
-            };
-            fetch(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ data: [payload] })
-            })
-            .then(r => r.json()) // assume the API returns a JSON containing the public link
-            .then(data => {
-              // For demo, just fake the link
-              const link = data.public_url || (data.data && data.data[0]?.url) || "#";
-              filesArr[idx].state = "done";
-              filesArr[idx].link = link;
-              itemDiv.querySelector(".spinner").outerHTML = `<a href="${link}" target="_blank" class="text-primary-blue underline">Xem</a>`;
-              itemDiv.querySelector('button').classList.remove("hidden");
-              cb && cb(filesArr.map(u=>u.link));
-            })
-            .catch(err=>{
-              itemDiv.querySelector(".spinner").outerHTML = `<span class="text-red-500">Thất bại</span>`;
-              cb && cb(filesArr.map(u=>u.link));
-            });
-          };
-          reader.readAsDataURL(file);
-
-          // Delete logic
-          itemDiv.querySelector("button").onclick = ()=>{
-            itemDiv.remove();
-            filesArr[idx]=null;
-            cb && cb(filesArr.filter(Boolean).map(u=>u.link));
-          };
-        }
-        // Reset input
-        fileInput.value = "";
-      });
-      return ()=>filesArr.filter(Boolean).map(u=>({
-        file: u.file,
-        link: u.link
-      }));
+    function updateSpecialFields(){
+      const choice = (document.querySelector('input[name="testType"]:checked') || {}).value;
+      const container = document.getElementById('specialTestFields');
+      const input = document.getElementById('specialRequestDesc');
+      const show = choice === 'special';
+      if (container) container.classList.toggle('hidden', !show);
+      if (input) { input.disabled = !show; input.required = show; }
     }
+    updateSpecialFields();
 
-    // Use upload widgets on each form
-    let testRequestUploads = [];
-    // Specialized uploader for Form 1 using Google Apps Script
-    (function setupTestRequestUploads(){
-      const fileInput = document.getElementById('testRequestFiles');
-      const uploadList = document.getElementById('testRequestUploadList');
-      testRequestUploads = [];
-      function renderItem(name, url){
-        const itemDiv = document.createElement('div');
-        itemDiv.className = "flex items-center justify-between p-2 bg-blue-50 rounded";
-        itemDiv.innerHTML = `
-          <span>📄<span class="ml-2">${name}</span></span>
-          <a href="${url}" target="_blank" class="text-primary-blue underline">Xem</a>
-          <button class="ml-4 text-red-600 hover:underline font-bold" type="button">X</button>
-        `;
-        const idx = testRequestUploads.length;
-        testRequestUploads.push({ name, url });
-        itemDiv.querySelector('button').onclick = ()=>{
-          itemDiv.remove();
-          testRequestUploads[idx] = null;
-        };
-        uploadList.appendChild(itemDiv);
+    // d. Component type mapping (suggestions + drag-and-drop + auto-standard)
+    (function setupComponentType(){
+      const input = document.getElementById('componentType');
+      const datalist = document.getElementById('componentTypeOptions');
+      const hiddenStd = document.getElementById('componentStandard');
+      const note = document.getElementById('componentStandardNote');
+      if (!input || !datalist || !hiddenStd || !note) return;
+
+      const COMPONENT_ITEMS = [
+        { name: 'Máy lọc nước', std: 32 },
+        { name: 'Máy lọc nước (Chỉ rung lắc)', std: 6 },
+        { name: 'Máy lọc nước (Base/rà soát tài liệu)', std: 12 },
+        { name: 'Linh kiện cơ khí kết cấu M25', std: 17 },
+        { name: 'Tem nhãn, Thùng carton,Băng dính,Túi bóng PE,Xốp,Đai bình áp', std: 16 },
+        { name: 'Ốc vít, stopper', std: 16 },
+        { name: 'Lõi lọc thô (PP, OCB, CTO, UDF)', std: 19 },
+        { name: 'Cốc, Nắp cốc', std: 17 },
+        { name: 'Dây RO', std: 23 },
+        { name: 'Thân vỏ màng, Nắp vỏ màng', std: 17 },
+        { name: 'Bình áp,Bình chứa', std: 23 },
+        { name: 'Vòi,bộ khóa vòi, củ vòi', std: 23 },
+        { name: 'Các loại hạt trong lõi, than, khoáng đá, Corosex, ORP, CaCO3', std: 19 },
+        { name: 'Màng RO,UF', std: 24 },
+        { name: 'Bộ điện phân Alkaline, Hydrogen, Bộ điện phân', std: 24 },
+        { name: 'Bộ dây điện', std: 23 },
+        { name: 'Bơm', std: 25 },
+        { name: 'Nguồn xung, nguồn cơ, Mạch điện tử', std: 23 },
+        { name: 'Phin lọc, Block', std: 25 },
+        { name: 'Ốp sắt, ốp nhựa', std: 17 },
+        { name: 'Thân tủ, vỏ tủ, khay nóng lạnh', std: 17 },
+        { name: 'Nam châm, Chốt định, cánh,dây thít,dây đai,keo silicone, keo nến,ống bảo ôn', std: 16 },
+        { name: 'Kính', std: 17 },
+        { name: 'Van áp thấp,Van áp trung, Van áp cao, Van điện từ, Van bình áp, Van xả tay, Van TDS, Van 1 chiều, Van 4 cửa, Van giảm áp', std: 23 },
+        { name: 'Cút, ốc', std: 23 },
+        { name: 'Gioăng, Linh kiện hạt nối nhanh', std: 23 },
+        { name: 'Bình nóng, Bình lạnh, Bình tản nhiệt, Gas lạnh', std: 25 },
+        { name: 'Dàn nóng, Dàn lạnh', std: 25 },
+        { name: 'Ống đồng, ống Inox', std: 25 },
+        { name: 'Thermostar cơ, Cảm biến NTC', std: 25 },
+        { name: 'Giá RO, Đinh, đế tủ, Linh kiện bắt vào thân tủ', std: 17 },
+        { name: 'Linh kiện khác', std: 0 }
+      ];
+
+      // Populate datalist for component type
+      datalist.innerHTML = COMPONENT_ITEMS.map(i=>`<option value="${i.name}"></option>`).join('');
+
+      function normalize(s){
+        return (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
       }
-      fileInput.addEventListener('change', async function(){
-        if (!this.files || this.files.length === 0) return;
-        for (const file of this.files){
-          // Create a row with spinner first
-          const rowDiv = document.createElement('div');
-          rowDiv.className = "flex items-center justify-between p-2 bg-blue-50 rounded";
-          rowDiv.innerHTML = `
-            <span>📄<span class=\"ml-2\">${file.name}</span></span>
-            <span class=\"spinner\"></span>
-          `;
-          uploadList.appendChild(rowDiv);
-          try{
-            const url = await new Promise((resolve, reject)=>{
-              const reader = new FileReader();
-              reader.onload = async ()=>{
-                try{
-                  const base64 = reader.result.split(',')[1];
-                  const form = new URLSearchParams();
-                  form.append('filedata', base64);
-                  form.append('filename', file.name);
-                  form.append('mimetype', file.type);
-                  const resp = await fetch(UPLOAD_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: form.toString()
-                  });
-                  if(!resp.ok) throw new Error('Upload failed');
-                  const raw = await resp.text();
-                  let parsedUrl = '';
-                  try{
-                    const j = JSON.parse(raw);
-                    parsedUrl = j.url || j.fileUrl || j.public_url || j.link || (j.data && j.data[0] && j.data[0].url) || '';
-                  }catch(_){
-                    const match = (raw || '').match(/https?:\/\/[^\s"']+/);
-                    parsedUrl = match ? match[0] : '';
-                  }
-                  resolve(parsedUrl || '#');
-                }catch(err){ reject(err); }
-              };
-              reader.onerror = ()=>reject(new Error('File read error'));
-              reader.readAsDataURL(file);
-            });
-            // Update the same row in place to show link and delete button
-            const idx = testRequestUploads.length;
-            testRequestUploads.push({ name: file.name, url });
-            rowDiv.innerHTML = `
-              <span>📄<span class=\"ml-2\">${file.name}</span></span>
-              <span class=\"text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs\">Đã tải lên</span>
-              <span class=\"flex items-center gap-3\">
-                <a href=\"${url}\" target=\"_blank\" class=\"text-primary-blue underline\">Xem</a>
-                <button class=\"ml-2 text-red-600 hover:underline font-bold\" type=\"button\">X</button>
-              </span>
-            `;
-            rowDiv.querySelector('button').onclick = ()=>{
-              rowDiv.remove();
-              testRequestUploads[idx] = null;
-            };
-          }catch(err){
-            const spinnerEl = rowDiv.querySelector('.spinner');
-            if (spinnerEl) spinnerEl.outerHTML = `<span class=\"text-red-600\">Thất bại</span>`;
-            setTimeout(()=>{ try{ uploadList.removeChild(rowDiv);}catch(_){} }, 2000);
-          }
+
+      function resolveStandard(raw){
+        if (!raw) return { name: '', std: 0 };
+        // Exact match first
+        const exact = COMPONENT_ITEMS.find(i => i.name === raw);
+        if (exact) return exact;
+        const n = normalize(raw);
+        // Try inclusive match on normalized strings
+        let best = { name: raw, std: 0 };
+        for (const item of COMPONENT_ITEMS) {
+          const ni = normalize(item.name);
+          if (n === ni || n.includes(ni) || ni.includes(n)) { best = item; break; }
         }
-        this.value = '';
+        return best;
+      }
+
+      function updateStandard(){
+        const res = resolveStandard(input.value);
+        hiddenStd.value = String(res.std || 0);
+        note.textContent = '';
+      }
+
+      input.addEventListener('input', updateStandard);
+      input.addEventListener('change', updateStandard);
+      input.addEventListener('blur', updateStandard);
+
+      // Drag-and-drop text support
+      ;['dragenter','dragover'].forEach(ev=>{
+        input.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); input.classList.add('ring-2','ring-blue-300'); });
       });
+      ;['dragleave','drop'].forEach(ev=>{
+        input.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); input.classList.remove('ring-2','ring-blue-300'); });
+      });
+      input.addEventListener('drop', e=>{
+        const txt = e.dataTransfer?.getData('text/plain') || '';
+        if (txt) {
+          input.value = txt.trim();
+          updateStandard();
+        }
+      });
+
+      // Initialize on load
+      updateStandard();
+
+      // Expose data for other modules
+      window.__resolveComponentStandard = (val)=>resolveStandard(val||'').std || 0;
+      window.__componentItems = COMPONENT_ITEMS.slice();
     })();
-    // internal forms moved to DQA_internal.html
+
+    // Link product name keywords to filter component type suggestions
+    (function linkProductNameToComponentType(){
+      const productNameInput = document.getElementById('productName');
+      const compInput = document.getElementById('componentType');
+      const compList = document.getElementById('componentTypeOptions');
+      if (!productNameInput || !compInput || !compList) return;
+
+      function normalize(s){
+        return (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+      }
+
+      function scoreCandidate(query, candidate){
+        const q = normalize(query);
+        const c = normalize(candidate);
+        if (!q) return 0;
+        let score = 0;
+        q.split(/\s+/).filter(Boolean).forEach(tok=>{
+          if (c.includes(tok)) score += 2;
+        });
+        // bonus if startsWith any token
+        const first = q.split(/\s+/).filter(Boolean)[0] || '';
+        if (first && c.startsWith(first)) score += 1;
+        return score;
+      }
+
+      function updateComponentSuggestions(){
+        const items = window.__componentItems || [];
+        const q = productNameInput.value || '';
+        const ranked = items
+          .map(i=>({ name: i.name, std: i.std, s: scoreCandidate(q, i.name) }))
+          .filter(x=>x.s > 0 || !q)
+          .sort((a,b)=> b.s - a.s || a.name.localeCompare(b.name));
+        const take = (q ? ranked.slice(0, 20) : items.slice(0, 50));
+        compList.innerHTML = take.map(i=>`<option value="${i.name}"></option>`).join('');
+        // If current componentType empty and there is a strong candidate, prefill suggestion (not forced)
+        if (!compInput.value && q && ranked.length && ranked[0].s >= 2) {
+          compInput.setAttribute('placeholder', `Gợi ý: ${ranked[0].name}`);
+        } else if (!q) {
+          compInput.setAttribute('placeholder', 'Loại linh kiện *');
+        }
+      }
+
+      productNameInput.addEventListener('input', updateComponentSuggestions);
+      productNameInput.addEventListener('blur', updateComponentSuggestions);
+      // initial
+      updateComponentSuggestions();
+    })();
+
+    // A. Sender auto-complete and auto-fill email/department
+    (function setupSenderAutocomplete(){
+      const nameInput = document.getElementById('senderName');
+      const emailInput = document.querySelector('input[name="senderEmail"]');
+      const deptSelect = document.querySelector('select[name="department"]');
+      const list = document.getElementById('senderNameOptions');
+      if (!nameInput || !emailInput || !deptSelect || !list) return;
+
+      const SENDER_DB = [
+        { name: 'Đoàn Thị Minh Thư', dept: 'KTSP', email: 'thu.doan@karofi.vn' },
+        { name: 'Đặng Văn Hải', dept: 'TKCK', email: 'haidv1@karofi.vn' },
+        { name: 'Nguyễn Quang Trọng', dept: 'KTCN', email: 'trongnq@karofi.vn' },
+        { name: 'Phạm Quang Doanh', dept: 'TKĐT', email: 'doanh.pham@karofi.vn' },
+        { name: 'Nguyễn Thị Mừng', dept: 'SC', email: 'mung.nguyen1@karofi.vn' },
+        { name: 'Vũ Đăng Lương', dept: 'KTSP', email: 'luong.vu@karofi.vn' },
+        { name: 'Hoàng Lê Anh', dept: 'TKCK', email: 'anh.hoang2@karofi.com' },
+        { name: 'Phan Văn Cử', dept: 'KTSP', email: 'cupv@karofi.vn' },
+        { name: 'Phạm Văn Thuận', dept: 'KTSX', email: 'thuan.pham2@karofi.vn' },
+        { name: 'Chu Văn Quang', dept: 'KTSP', email: 'quangcv@karofi.vn' },
+        { name: 'Trần Khắc Lâm', dept: 'KTSP', email: 'lamtk@karofi.vn' },
+        { name: 'Đặng Thế Huy', dept: 'TKĐT', email: 'huydt@karofi.com' },
+        { name: 'Trần Hồng Nhung', dept: 'SC', email: 'nhung.tran2@karofi.vn' },
+        { name: 'Đỗ Thành Công', dept: 'KTSP', email: 'congdt@karofi.vn' },
+        { name: 'Nguyễn Kim Cương', dept: 'NCTN', email: 'cuong.nguyen6@karofi.com' },
+        { name: 'Nguyễn Chung Nam', dept: 'Mua hàng', email: 'nam.nguyen5@karofi.vn' },
+        { name: 'Nguyễn Ngọc Quang', dept: 'TKCK', email: 'quang.nguyen1@karofi.vn' },
+        { name: 'Hoàng Thùy Linh', dept: 'NCTN', email: 'linh.hoang1@karofi.vn' },
+        { name: 'Đoàn Văn Minh', dept: 'TKCK', email: 'minh.doan@karofi.vn' },
+        { name: 'Trần Văn Cường', dept: 'QA/QC nhà máy', email: 'cuong.tran1@karofi.vn' },
+        { name: 'Đỗ Công Nhậm', dept: 'TKCK', email: 'nham.do@karofi.vn' },
+        { name: 'Lê Minh Hải', dept: 'KTSP', email: 'hai.le3@karofi.vn' },
+        { name: 'Đỗ Xuân Thái', dept: 'KTSP', email: 'thai.doi@karofi.vn' },
+        { name: 'Trịnh Kế Lực', dept: 'KTSX', email: 'luc.trinh@karofi.vn' },
+        { name: 'Đặng Văn Thuấn', dept: 'KTCN', email: 'thuan.dang@karofi.vn' },
+        { name: 'Lê Thế Anh', dept: 'KTSP', email: 'anh.le@karofi.vn' },
+        { name: 'Dương Quốc Hiếu', dept: 'TKCK', email: 'hieudq1@karofi.vn' },
+        { name: 'Phùng Chí Tiến', dept: 'KTSP', email: 'tien.phung@karofi.vn' },
+        { name: 'Nguyễn Thị Hương Thúy', dept: 'Mua hàng', email: 'thuy.nguyen@karofi.vn' },
+        { name: 'Đào Hoàng Dương', dept: 'DQA', email: 'duong.dao@karofi.vn' },
+      ];
+
+      function normalize(s){
+        return (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
+      }
+
+      function renderOptions(q){
+        const n = normalize(q);
+        // When empty query: do not show any suggestion
+        if (!n) { list.innerHTML = ''; return; }
+        const candidates = SENDER_DB
+          .filter(x => normalize(x.name).includes(n))
+          .sort((a,b)=> a.name.localeCompare(b.name))
+          .slice(0, 30);
+        list.innerHTML = candidates.map(c=>`<option value="${c.name}"></option>`).join('');
+      }
+
+      function tryAutofill(){
+        const val = nameInput.value || '';
+        const exact = SENDER_DB.find(x=>x.name === val);
+        if (exact) {
+          emailInput.value = exact.email;
+          // set department select to matching option if possible
+          const opts = Array.from(deptSelect.options);
+          const match = opts.find(o=> (o.value||o.text||'').trim() === exact.dept);
+          if (match) deptSelect.value = match.value || match.text;
+        }
+      }
+
+      nameInput.addEventListener('input', ()=>{ renderOptions(nameInput.value); });
+      nameInput.addEventListener('change', tryAutofill);
+      nameInput.addEventListener('blur', tryAutofill);
+      renderOptions('');
+    })();
+
+    // ===== Enhanced File Upload (Deferred) =====
+    let testRequestUploads = [];
+    let pendingFiles = [];
+    (function setupDeferredFileUpload(){
+      const fileInput = document.getElementById('testRequestFiles');
+      const uploadArea = document.getElementById('fileUploadArea');
+      const uploadList = document.getElementById('testRequestUploadList');
+      const uploadProgress = document.getElementById('uploadProgress');
+      const progressBar = document.getElementById('progressBar');
+      const uploadPercent = document.getElementById('uploadPercent');
+
+      const allowedTypes = {
+        'application/pdf': 'PDF',
+        'application/msword': 'DOC',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+        'application/vnd.ms-excel': 'XLS',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+        'image/jpeg': 'JPG',
+        'image/jpg': 'JPG',
+        'image/png': 'PNG'
+      };
+      const maxFileSize = 20 * 1024 * 1024;
+
+      function getFileIcon(mimeType) {
+        if (mimeType.startsWith('image/')) return '🖼️';
+        if (mimeType.includes('pdf')) return '📄';
+        if (mimeType.includes('word')) return '📝';
+        if (mimeType.includes('excel') || mimeType.includes('sheet')) return '📊';
+        return '📎';
+      }
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+      function validateFile(file) {
+        const errors = [];
+        const type = file.type || '';
+        if (type ? !allowedTypes[type] : !( ['pdf','doc','docx','xls','xlsx','jpg','jpeg','png'].includes((file.name.split('.').pop()||'').toLowerCase()) )) {
+          errors.push('Loại file không được hỗ trợ');
+        }
+        if (file.size > maxFileSize) errors.push('File quá lớn (tối đa 20MB)');
+        return errors;
+      }
+      function showProgress(percent) {
+        uploadProgress.classList.remove('hidden');
+        progressBar.style.width = percent + '%';
+        uploadPercent.textContent = percent + '%';
+        if (percent >= 100) setTimeout(()=>uploadProgress.classList.add('hidden'), 800);
+      }
+
+      function createItem(file, idx) {
+        const isImage = file.type.startsWith('image/');
+        const typeLabel = allowedTypes[file.type] || 'FILE';
+        const row = document.createElement('div');
+        row.className = 'bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow file-item';
+        row.id = `file-row-${idx}`;
+        row.innerHTML = `
+          <div class="flex items-start space-x-4">
+            ${isImage ?
+              `<div class="flex-shrink-0 file-preview">
+                <img id="preview-${idx}" class="w-16 h-16 object-cover rounded-lg border" src="#" alt="Preview">
+              </div>` :
+              `<div class="flex-shrink-0 w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">${getFileIcon(file.type)}</span>
+              </div>`}
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <input id="rename-${idx}" class="text-sm font-medium text-gray-900 truncate border border-blue-200 rounded px-2 py-1 w-full max-w-xs"
+                       value="${file.name}" />
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">${typeLabel}</span>
+              </div>
+              <p class="text-sm text-gray-500 mt-1">${formatFileSize(file.size)}</p>
+            </div>
+            <button type="button" id="remove-${idx}" class="flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>`;
+        uploadList.appendChild(row);
+
+        if (isImage) {
+          const r = new FileReader();
+          r.onload = e => { const img = document.getElementById(`preview-${idx}`); if (img) img.src = e.target.result; };
+          r.readAsDataURL(file);
+        }
+        row.querySelector(`#rename-${idx}`).addEventListener('input', e=>{
+          const pf = pendingFiles[idx]; if (pf) pf.name = e.target.value;
+        });
+        row.querySelector(`#remove-${idx}`).onclick = ()=>{
+          const pf = pendingFiles[idx];
+          if (pf) pendingFiles[idx] = null;
+          row.remove();
+        };
+      }
+
+      function addFiles(files) {
+        const errs = [];
+        Array.from(files).forEach(file=>{
+          const e = validateFile(file);
+          if (e.length) { errs.push(`${file.name}: ${e.join(', ')}`); return; }
+          const idx = pendingFiles.length;
+          pendingFiles.push({ file, name: file.name });
+          createItem(file, idx);
+        });
+        if (errs.length) alert('Một số file không hợp lệ:\n\n' + errs.join('\n'));
+      }
+
+      ['dragenter','dragover','dragleave','drop'].forEach(ev=>{
+        uploadArea.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); }, false);
+      });
+      ['dragenter','dragover'].forEach(ev=>{
+        uploadArea.addEventListener(ev, ()=>uploadArea.classList.add('border-blue-500','bg-blue-50'), false);
+      });
+      ['dragleave','drop'].forEach(ev=>{
+        uploadArea.addEventListener(ev, ()=>uploadArea.classList.remove('border-blue-500','bg-blue-50'), false);
+      });
+      uploadArea.addEventListener('drop', e=>addFiles(e.dataTransfer.files), false);
+      fileInput.addEventListener('change', function(){ if (this.files?.length) addFiles(this.files); this.value=''; });
+      uploadArea.addEventListener('click', e=>{ if (e.target!==fileInput) fileInput.click(); });
+
+      window.__getPendingFiles = () => pendingFiles.filter(Boolean);
+      window.__clearPendingFiles = () => { pendingFiles = []; };
+      window.__showUploadProgress = showProgress;
+    })();
 
     // Form submit logic (for main forms)
+    const LOCAL_TASKS_KEY = 'DQA_TASKS_V1';
+    function __loadTasks(){ try { return JSON.parse(localStorage.getItem(LOCAL_TASKS_KEY) || '[]'); } catch { return []; } }
+    function __saveTask(task){ const cur = __loadTasks(); cur.push(task); localStorage.setItem(LOCAL_TASKS_KEY, JSON.stringify(cur)); }
+
+    async function uploadPendingFiles(progressCb){
+      const list = (window.__getPendingFiles ? window.__getPendingFiles() : []);
+      const total = Math.max(list.length, 1);
+      const results = [];
+      let done = 0;
+
+      for (const item of list) {
+        const base64 = await new Promise((resolve,reject)=>{
+          const r = new FileReader();
+          r.onload = e=>resolve(e.target.result.split(',')[1]);
+          r.onerror = ()=>reject(new Error('Không thể đọc file'));
+          r.readAsDataURL(item.file);
+        });
+        const payload = { data: [{ filename: (item.name || item.file.name), mimetype: item.file.type, filedata: base64 }] };
+        const resp = await fetch(FILE_UPLOAD_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        let result = {};
+        const ct = resp.headers.get('content-type') || '';
+        if (ct.includes('application/json')) result = await resp.json();
+        else { try { result = JSON.parse(await resp.text()); } catch { result = {}; } }
+        const url = result.url || result.fileUrl || result.public_url || (result.data && result.data[0] && (result.data[0].url || result.data[0].link)) || '#';
+        results.push({ name: (item.name || item.file.name), url, type: item.file.type, size: item.file.size });
+
+        done++;
+        const percent = Math.round((done/total)*100);
+        if (progressCb) progressCb(percent);
+        if (window.__showUploadProgress) window.__showUploadProgress(percent);
+      }
+      return results;
+    }
+
     function toJSON(form){
       const d = {};
       new FormData(form).forEach((val,key)=>{
-        if(d[key])
-          d[key] = [].concat(d[key],val);
-        else
-          d[key]=val;
+        if(d[key]) d[key] = [].concat(d[key],val); else d[key]=val;
       });
       return d;
     }
+
     function submitForm(formId, endpoint, getUploads){
       document.getElementById(formId).onsubmit = async function(e){
         e.preventDefault();
-        // Confirmation popup for Form 1 before sending
         if (formId === 'testRequestForm') {
           const confirmed = window.confirm('Bằng việc xác nhận gửi yêu cầu, bạn cam kết mẫu đã được gửi đúng và đủ đến DQA.');
           if (!confirmed) return;
         }
         const btn = this.querySelector("button[type=submit]");
-        const originalLabel = btn ? btn.textContent : "";
-        btn.disabled = true;
-        btn.innerHTML = "<span class='spinner'></span>";
-        let data = toJSON(this);
-        let reqBody;
-        if(getUploads){
-          if(formId === "testRequestForm"){
-            const uploads = getUploads();
-            const valid = (uploads || []).filter(Boolean);
-            data.attachments = valid.map(u=>u.name || '').join(';');
-            data.attachmentUrls = valid.map(u=>u.url || '').join(';');
-          } else {
-          data.attachments = getUploads();
-        }
-        }
-        if(formId==="testRequestForm"){
-          const isSpecial = data.testType === 'special';
-          const submissionRound = parseInt(data.sampleSubmissionNo || '0', 10) || 0;
-          const normalizedRequestDate = (data.requestDate || '').toString().slice(0,10);
-          const normalizedDesiredDate = (data.desiredCompletionDate || '').toString().slice(0,10);
-          const desiredDateTimeISO = String(data.desiredCompletionDateTime || '').trim();
-          
-          // Chỉ gửi đúng các cột yêu cầu
-          const mapped = {
-            requesterName: String(data.senderName || '').trim(),
-            email: String(data.senderEmail || '').trim(),
-            requestDate: String(normalizedRequestDate || '').trim(),
-            deptRequest: String(data.department || '').trim(),
-            itemName: String(data.productName || '').trim(),
-            itemCode: String(data.productCode || '').trim(),
-            purpose: String(data.requestPurpose || '').trim(),
-            vendor: String(data.supplier || '').trim(),
-            qtySamples: String(data.numSamples || '').trim(),
-            desiredDate: String(normalizedDesiredDate || '').trim(),
-            changeReq: String(data.notes || '').trim(),
-            kiemtraDefault: isSpecial ? '0' : '1',
-            kiemtraDacBiet: isSpecial ? '1' : '0',
-            attachments: String(data.attachments || '').trim(),
-            SpecialReq: String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim(),
-            Receiver: String(data.personReceived || '').trim(),
-            isResubmission: submissionRound >= 2 ? '1' : '0',
-            Score: '',
-            Odoojira: '',
-            Assignee: ''
-          };
+        const originalLabel = btn ? btn.innerHTML : "";
+        if (btn) { btn.disabled = true; btn.innerHTML = "<span class='spinner'></span><span style='margin-left:8px'>Đang gửi...</span>"; }
 
-          reqBody = { data: [mapped] };
-        } else {
-          // other forms unchanged
-          reqBody = { data: [data] };
+        const data = (function toJSON(form){
+          const d = {}; new FormData(form).forEach((val,key)=>{ d[key] = d[key] ? [].concat(d[key],val) : val; }); return d;
+        })(this);
+        const isSpecial = data.testType === 'special';
+        const submissionRound = parseInt(data.sampleSubmissionNo || '0', 10) || 0;
+        const normalizedRequestDate = (data.requestDate || '').toString().slice(0,10);
+        const normalizedDesiredDate = (data.desiredCompletionDate || '').toString().slice(0,10);
+        const componentStd = (function(){
+          let s = Number(data.componentStandard || 0);
+          if (!s) {
+            try { s = (window.__resolveComponentStandard ? window.__resolveComponentStandard(data.componentType) : 0) || 0; }
+            catch(_) { s = 0; }
+          }
+          return s;
+        })();
+
+        const mapped = {
+          requesterName: String(data.senderName || '').trim(),
+          email: String(data.senderEmail || '').trim(),
+          requestDate: String(normalizedRequestDate || '').trim(),
+          requestCode: String(document.getElementById('requestCode')?.value || '').trim(),
+          deptRequest: String(data.department || '').trim(),
+          itemName: String(data.productName || '').trim(),
+          itemCode: String(data.productCode || '').trim(),
+          componentType: String(data.componentType || '').trim(),
+          componentStandard: String(componentStd),
+          purpose: String(data.requestPurpose || '').trim(),
+          vendor: String(data.supplier || '').trim(),
+          qtySamples: String(data.numSamples || '').trim(),
+          desiredDate: String(normalizedDesiredDate || '').trim(),
+          changeReq: String(data.notes || '').trim(),
+          changeFromLastNote: String(data.changeFromLastNote || '').trim(),
+          kiemtraDefault: isSpecial ? '0' : '1',
+          kiemtraDacBiet: isSpecial ? '1' : '0',
+          SpecialReq: String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim(),
+          Receiver: String(data.personReceived || '').trim(),
+          sampleSubmissionNo: String(submissionRound),
+          isResubmission: String(submissionRound),
+          altCode: String(data.altCode || '').trim(),
+          appliedModel: String(data.appliedModel || '').trim(),
+          Score: String(componentStd), Odoojira: '', Assignee: ''
+        };
+
+        const pending = window.__getPendingFiles ? window.__getPendingFiles() : [];
+        const attachmentNames = pending.map(p=>p?.name || p?.file?.name).filter(Boolean);
+
+        const localTask = {
+          requesterName: mapped.requesterName,
+          submissionDate: mapped.requestDate,
+          desiredDueDate: mapped.desiredDate,
+          responseDueDate: '',
+          taskName: `Yêu cầu thử nghiệm - ${mapped.itemName}`,
+          pic: mapped.Receiver,
+          status: 'Đã gửi',
+          reportCode: mapped.requestCode,
+          email: mapped.email,
+          department: mapped.deptRequest
+        };
+
+        const fd = new FormData();
+        Object.entries(mapped).forEach(([k,v])=>fd.append(k, v));
+        fd.append('attachments', attachmentNames.join(';'));
+        // add component standard explicitly for form-data receivers expecting separate field
+        fd.append('componentStandard', String(componentStd));
+        for (const item of pending) {
+          if (!item) continue;
+          const name = item.name || item.file.name;
+          fd.append('files[]', item.file, name);
         }
+
         try{
-          const resp = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Accept": "application/json" },
-            body: JSON.stringify(reqBody)
-          });
-          if(resp.ok){
+          let resp = await fetch(endpoint, { method: 'POST', body: fd });
+          if (!resp.ok) {
+            const uploaded = await uploadPendingFiles();
+            const mappedFallback = {
+              ...mapped,
+              attachments: uploaded.map(u=>u.name || '').join(';'),
+              attachmentUrls: uploaded.map(u=>u.url || '').join(';')
+            };
+            resp = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify({ data: [mappedFallback] })
+            });
+            if (!resp.ok) throw new Error(await resp.text());
+          }
+
+          // Thành công
+          try { __saveTask(localTask); } catch {}
+          if (btn) {
             btn.innerHTML="Đã gửi!";
-            btn.classList.add("bg-green-600");
-            setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;btn.classList.remove("bg-green-600")},20000);
-            // Reset only when user does not want to keep data
-            if(!(formId === 'testRequestForm' && document.getElementById('keepDataAfterSubmit')?.checked)){
+            setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;},20000);
+          }
+
+          if(!document.getElementById('keepDataAfterSubmit')?.checked){
             this.reset();
-              // restore current datetime for readonly field
-              const dtEl = document.getElementById('testRequestDate');
-              if (dtEl) {
-                const now = new Date();
-                const tz = now.getTimezoneOffset() * 60000;
-                dtEl.value = new Date(now.getTime() - tz).toISOString().slice(0, 16);
-              }
-            }
-          }else {
-            const text = await resp.text();
-            throw new Error(text || `HTTP ${resp.status}`);
+            setCurrentDateTime('testRequestDate');
+            setRequestCode();
+            try {
+              const list = document.getElementById('testRequestUploadList');
+              if (list) list.innerHTML = '';
+              if (window.__clearPendingFiles) window.__clearPendingFiles();
+              if (Array.isArray(testRequestUploads)) testRequestUploads = [];
+            } catch(_) {}
           }
         }catch(err){
-          // Fallbacks cho lỗi "Bad data format" của SheetDB
-          if (formId === 'testRequestForm' && /bad data format/i.test(String(err.message || err))) {
-            try {
-              const isSpecial = data.testType === 'special';
-              const normalizedRequestDate2 = (data.requestDate || '').toString().slice(0,10);
-              const normalizedDesiredDate2 = (data.desiredCompletionDate || '').toString().slice(0,10);
-
-              const fallbackObject = {
-                requesterName: String(data.senderName || '').trim(),
-                email: String(data.senderEmail || '').trim(),
-                requestDate: String(normalizedRequestDate2 || '').trim(),
-                deptRequest: String(data.department || '').trim(),
-                itemName: String(data.productName || '').trim(),
-                itemCode: String(data.productCode || '').trim(),
-                purpose: String(data.requestPurpose || '').trim(),
-                vendor: String(data.supplier || '').trim(),
-                qtySamples: String(data.numSamples || '').trim(),
-                desiredDate: String(normalizedDesiredDate2 || '').trim(),
-                changeReq: String(data.notes || '').trim(),
-                kiemtraDefault: isSpecial ? '0' : '1',
-                kiemtraDacBiet: isSpecial ? '1' : '0',
-                attachments: String(data.attachments || '').trim(),
-                SpecialReq: String(isSpecial ? (document.getElementById('specialRequestDesc')?.value || '') : '').trim(),
-                Receiver: String(data.personReceived || '').trim(),
-                isResubmission: (parseInt(data.sampleSubmissionNo || '0',10) || 0) >= 2 ? '1' : '0',
-                Score: '',
-                Odoojira: '',
-                Assignee: ''
-              };
-
-              // 1) Thử payload single-object (một số cấu hình SheetDB chấp nhận dạng này)
-              const respObj = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ data: fallbackObject })
-              });
-              if (respObj.ok) {
-                btn.innerHTML = 'Đã gửi!';
-                btn.classList.add('bg-green-600');
-                setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;btn.classList.remove('bg-green-600')},20000);
-                if(!document.getElementById('keepDataAfterSubmit')?.checked){
-                  this.reset();
-                  const dtEl = document.getElementById('testRequestDate');
-                  if (dtEl) {
-                    const now = new Date();
-                    const tz = now.getTimezoneOffset() * 60000;
-                    dtEl.value = new Date(now.getTime() - tz).toISOString().slice(0, 16);
-                  }
-                }
-                return;
-              }
-
-              // 2) Thử payload x-www-form-urlencoded
-              const formEncoded = new URLSearchParams();
-              formEncoded.append('data', JSON.stringify(fallbackObject));
-              const respForm = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-                body: formEncoded.toString()
-              });
-              if (respForm.ok) {
-                btn.innerHTML = 'Đã gửi!';
-                btn.classList.add('bg-green-600');
-                setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;btn.classList.remove('bg-green-600')},20000);
-                if(!document.getElementById('keepDataAfterSubmit')?.checked){
-                  this.reset();
-                  const dtEl = document.getElementById('testRequestDate');
-                  if (dtEl) {
-                    const now = new Date();
-                    const tz = now.getTimezoneOffset() * 60000;
-                    dtEl.value = new Date(now.getTime() - tz).toISOString().slice(0, 16);
-                  }
-                }
-                return;
-              }
-
-              // 3) Cuối cùng, thử lại dạng mảng objects (chuẩn SheetDB)
-              const respArr = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ data: [fallbackObject] })
-              });
-              if (respArr.ok) {
-                btn.innerHTML = 'Đã gửi!';
-                btn.classList.add('bg-green-600');
-                setTimeout(()=>{btn.innerHTML=originalLabel;btn.disabled=false;btn.classList.remove('bg-green-600')},20000);
-                if(!document.getElementById('keepDataAfterSubmit')?.checked){
-                  this.reset();
-                  const dtEl = document.getElementById('testRequestDate');
-                  if (dtEl) {
-                    const now = new Date();
-                    const tz = now.getTimezoneOffset() * 60000;
-                    dtEl.value = new Date(now.getTime() - tz).toISOString().slice(0, 16);
-                  }
-                }
-                return;
-              }
-
-              const t3 = await respArr.text();
-              throw new Error(t3 || 'Fallbacks failed');
-            } catch (e2) {
-              alert('Gửi thất bại (fallback): ' + e2);
-            }
-          } else {
-            alert("Gửi thất bại: "+err);
-          }
-          btn.innerHTML=originalLabel;
-          btn.disabled=false;
+          try { __saveTask(localTask); } catch {}
+          alert("Gửi thất bại: "+err);
+          if (btn) { btn.innerHTML=originalLabel; btn.disabled=false; }
         }
       };
     }
-    submitForm("testRequestForm", 
-      SHEETDB_API_URL,
-      ()=>testRequestUploads);
+    submitForm("testRequestForm", FORM_SUBMIT_ENDPOINT, ()=>testRequestUploads);
+    function setRequestCode(){
+      const el = document.getElementById('requestCode');
+      if (!el) return;
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2,'0');
+      const mm = String(now.getMonth()+1).padStart(2,'0');
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let rnd = '';
+      for (let i=0;i<6;i++) rnd += alphabet[Math.floor(Math.random()*alphabet.length)];
+      el.value = `QA.Y.${dd}${mm}-${rnd}`;
+    }
+    setRequestCode();
     // internal forms moved to DQA_internal.html
 
     // Task tracking table: fetch data from endpoint and render
