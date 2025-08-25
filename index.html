@@ -138,7 +138,7 @@
             <div class="md:col-span-2">
               <input required name="componentType" id="componentType" list="componentTypeOptions" type="text" placeholder="Loại linh kiện *" class="input-field"/>
               <datalist id="componentTypeOptions"></datalist>
-              <div class="text-xs text-gray-500 mt-1">Nếu linh kiện không có trong danh sách, hệ thống sẽ nhập "Linh kiện khác"</div>
+              <div class="text-xs text-gray-500 mt-1">Nếu linh kiện không có trong danh sách, nhập: "Linh kiện khác"</div>
               <input type="hidden" name="componentStandard" id="componentStandard" />
               <div id="componentStandardNote" class="text-sm text-gray-600 mt-1 hidden"></div>
             </div>
@@ -649,11 +649,6 @@
         const otherName = 'Linh kiện khác';
         const names = take.map(i=>i.name).filter(n=>n!==otherName);
         compList.innerHTML = names.map(n=>`<option value="${n}"></option>`).join('');
-        // If no suggestions match and field is empty, default to "Linh kiện khác"
-        if (q && ranked.length === 0 && !compInput.value) {
-          compInput.value = otherName;
-          try { compInput.dispatchEvent(new Event('input')); } catch(_){ }
-        }
         // If current componentType empty and there is a strong candidate, prefill suggestion (not forced)
         if (!compInput.value && q && ranked.length && ranked[0].s >= 2) {
           compInput.setAttribute('placeholder', `Gợi ý: ${ranked[0].name}`);
@@ -664,6 +659,20 @@
 
       productNameInput.addEventListener('input', updateComponentSuggestions);
       productNameInput.addEventListener('blur', updateComponentSuggestions);
+      // On blur only: if no suggestions match and component type empty, set to "Linh kiện khác"
+      productNameInput.addEventListener('blur', function(){
+        const items = window.__componentItems || [];
+        const q = productNameInput.value || '';
+        const ranked = items
+          .map(i=>({ name: i.name, std: i.std, s: scoreCandidate(q, i.name) }))
+          .filter(x=>x.s > 0 || !q)
+          .sort((a,b)=> b.s - a.s || a.name.localeCompare(b.name));
+        const otherName = 'Linh kiện khác';
+        if (q && ranked.length === 0 && !compInput.value) {
+          compInput.value = otherName;
+          try { compInput.dispatchEvent(new Event('input')); } catch(_){ }
+        }
+      });
       // initial
       updateComponentSuggestions();
     })();
@@ -1231,6 +1240,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 
