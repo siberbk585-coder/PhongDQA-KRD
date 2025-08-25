@@ -429,6 +429,14 @@
         if (input.type !== 'date') {
           input.type = 'date';
           setRange(input);
+          // Default to today + 7 days at the time of entry if empty
+          if (!input.value) {
+            const now = new Date();
+            const def = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            def.setDate(def.getDate() + 7);
+            input.value = toYMD(def);
+            try { updateHidden(); } catch(_) {}
+          }
           try { if (input.showPicker) input.showPicker(); } catch(_){}
         }
       }
@@ -521,16 +529,16 @@
         { name: 'Tem nhãn, Thùng carton,Băng dính,Túi bóng PE,Xốp,Đai bình áp', std: 16 },
         { name: 'Ốc vít, stopper', std: 16 },
         { name: 'Lõi lọc thô (PP, OCB, CTO, UDF)', std: 19 },
-        { name: 'Cốc, Nắp cốc', std: 17 },
+        { name: 'Cốc, Nắp cốc, vỏ màng, vỏ lõi, vỏ bình', std: 17 },
         { name: 'Dây RO', std: 23 },
         { name: 'Thân vỏ màng, Nắp vỏ màng', std: 17 },
         { name: 'Bình áp,Bình chứa', std: 23 },
-        { name: 'Vòi,bộ khóa vòi, củ vòi', std: 23 },
-        { name: 'Các loại hạt trong lõi, than, khoáng đá, Corosex, ORP, CaCO3', std: 19 },
-        { name: 'Lõi chức năng 6hp,Hydrogen,Alkaline,Nano silver, khoáng đá, hồng ngoại,T33', std: 19 },
+        { name: 'Vòi,bộ khóa vòi, củ vòi, ruột vòi', std: 23 },
+        { name: 'Các loại hạt trong lõi, than, khoáng đá, Corosex, ORP, CaCO3...', std: 19 },
+        { name: 'Lõi chức năng 6hp,Hydrogen,Alkaline,Nano silver, khoáng đá, hồng ngoại,T33..', std: 19 },
         { name: 'Màng RO,UF', std: 24 },
         { name: 'Bộ điện phân Alkaline, Hydrogen, Bộ điện phân', std: 24 },
-        { name: 'Bộ dây điện', std: 23 },
+        { name: 'Bộ dây điện, dây nguồn', std: 23 },
         { name: 'Bơm', std: 25 },
         { name: 'Nguồn xung, nguồn cơ, Mạch điện tử', std: 23 },
         { name: 'Phin lọc, Block', std: 25 },
@@ -543,14 +551,15 @@
         { name: 'Gioăng, Linh kiện hạt nối nhanh', std: 23 },
         { name: 'Bình nóng, Bình lạnh, Bình tản nhiệt, Gas lạnh', std: 25 },
         { name: 'Dàn nóng, Dàn lạnh', std: 25 },
-        { name: 'Ống đồng, ống Inox', std: 25 },
+        { name: 'Ống đồng, ống Inox, ống PVC, ống nhựa cứng', std: 25 },
         { name: 'Thermostar cơ, Cảm biến NTC', std: 25 },
         { name: 'Giá RO, Đinh, đế tủ, Linh kiện bắt vào thân tủ', std: 17 },
-        { name: 'Linh kiện khác', std: 0 }
+        { name: 'Linh kiện khác', std: 10 }
       ];
 
       // Populate datalist for component type
-      datalist.innerHTML = COMPONENT_ITEMS.map(i=>`<option value="${i.name}"></option>`).join('');
+      // Exclude "Linh kiện khác" from suggestions
+      datalist.innerHTML = COMPONENT_ITEMS.filter(i=>i.name!=="Linh kiện khác").map(i=>`<option value="${i.name}"></option>`).join('');
 
       function normalize(s){
         return (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
@@ -638,8 +647,7 @@
           .sort((a,b)=> b.s - a.s || a.name.localeCompare(b.name));
         const take = (q ? ranked.slice(0, 20) : items.slice(0, 50));
         const otherName = 'Linh kiện khác';
-        const names = take.map(i=>i.name);
-        if (!names.includes(otherName)) names.push(otherName);
+        const names = take.map(i=>i.name).filter(n=>n!==otherName);
         compList.innerHTML = names.map(n=>`<option value="${n}"></option>`).join('');
         // If no suggestions match and field is empty, default to "Linh kiện khác"
         if (q && ranked.length === 0 && !compInput.value) {
@@ -1223,10 +1231,6 @@
   </script>
 </body>
 </html>
-
-
-
-
 
 
 
