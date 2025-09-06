@@ -285,6 +285,10 @@
           <button id="taskTrackingSearchBtn" type="submit" class="submit-btn px-8 py-3 rounded-lg text-white font-semibold transition text-base">🔍 Tìm kiếm</button>
         </div>
       </form>
+      <div class="flex items-center gap-2 mb-3">
+        <label class="text-sm text-gray-700">Tháng</label>
+        <input id="tt-month" type="month" class="input-field h-10 w-48"/>
+      </div>
       <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
         <table id="trackingTable" class="min-w-full text-sm border-collapse">
           <thead>
@@ -1070,6 +1074,7 @@
     // Task tracking table: fetch data from endpoint and render
     (function(){
       const TASK_TRACKING_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/4794bc52-4d4c-4326-b2cb-1b8388f20fb1";
+      let TT_CACHE_ROWS = [];
 
       function getCaseInsensitive(obj, keys) {
         if (!obj) return "";
@@ -1083,6 +1088,8 @@
       function renderStatusBadge(status) {
         const s = (status || "").toString().toLowerCase();
         if (s.includes("done") || s.includes("hoàn")) return '<span class="rounded px-2 py-1 bg-green-100 text-green-800">Hoàn thành</span>';
+        if (s.includes("chờ phê duyệt") || s.includes("cho phe duyet")) return '<span class="rounded px-2 py-1 bg-orange-100 text-orange-800">Chờ phê duyệt</span>';
+        if (s.includes("chờ phân công") || s.includes("cho phan cong")) return '<span class="rounded px-2 py-1 bg-blue-100 text-blue-800">Chờ phân công</span>';
         if (s.includes("progress") || s.includes("đang")) return '<span class="rounded px-2 py-1 bg-yellow-100 text-yellow-800">Đang thực hiện</span>';
         if (s.includes("pending") || s.includes("chờ")) return '<span class="rounded px-2 py-1 bg-gray-100 text-gray-800">Chờ xử lý</span>';
         return `<span class="rounded px-2 py-1 bg-gray-100 text-gray-800">${status || "-"}</span>`;
@@ -1099,6 +1106,35 @@
         const yyyy = d.getFullYear();
         return `${dd}/${mm}/${yyyy}`;
       }
+
+      function formatYYYYMM(val){
+        try{ const d = new Date(val); if (isNaN(d)) return ''; const mm = String(d.getMonth()+1).padStart(2,'0'); return `${d.getFullYear()}-${mm}`; }catch(_){ return ''; }
+      }
+
+      function applyTaskMonthFilter(){
+        const monthEl = document.getElementById('tt-month');
+        const mval = monthEl ? (monthEl.value||'').trim() : '';
+        const bodyEl = document.getElementById('trackingTableBody');
+        if (!Array.isArray(TT_CACHE_ROWS) || TT_CACHE_ROWS.length===0){
+          bodyEl.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>';
+          return;
+        }
+        let rows = TT_CACHE_ROWS.slice();
+        if (mval){ rows = rows.filter(r => r.monthTag === mval); }
+        if (!rows.length){ bodyEl.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Không có dữ liệu</td></tr>'; return; }
+        const html = rows.map(r=> r.html).join('');
+        bodyEl.innerHTML = html;
+      }
+
+      (function initTTMonth(){
+        const el = document.getElementById('tt-month');
+        if (!el) return;
+        const d = new Date();
+        const yy = d.getFullYear();
+        const mm = String(d.getMonth()+1).padStart(2,'0');
+        if (!el.value) el.value = `${yy}-${mm}`;
+        if (!el._bound){ el.addEventListener('change', ()=> applyTaskMonthFilter()); el._bound = true; }
+      })();
 
       document.getElementById('taskTrackingForm').onsubmit = async function(e){
       e.preventDefault();
@@ -1210,6 +1246,7 @@
               if (wa !== wb) return wa - wb;
               return 0;
             });
+            TT_CACHE_ROWS = [];
             const html = rowsSorted.map(r=>{
               const assigner = getCaseInsensitive(r, [map.assigner,'assigner','nguoiGiaoViec','assignedTo']) || '-';
               const submissionDate = toDDMMYYYY(getCaseInsensitive(r, [map.submissionDate,'ngayGui','createdAt','created_at'])) || '-';
@@ -1219,7 +1256,8 @@
               const reportCode = getCaseInsensitive(r, [map.reportCode,'reportCode','maBaoCao','report_code']) || '-';
               const pic = getCaseInsensitive(r, [map.pic,'phuTrach','owner','assignee']) || '-';
               const status = getCaseInsensitive(r, [map.status,'trangThai']) || '';
-              return `
+              const monthTag = formatYYYYMM(getCaseInsensitive(r, [map.submissionDate,'ngayGui','createdAt','created_at']));
+              const rowHtml = `
                 <tr>
                   <td class="px-4 py-2">${assigner}</td>
                   <td class="px-4 py-2">${submissionDate}</td>
@@ -1230,8 +1268,11 @@
                   <td class="px-4 py-2">${renderStatusBadge(status)}</td>
                   <td class="px-4 py-2">${reportCode}</td>
                 </tr>`;
+              TT_CACHE_ROWS.push({ html: rowHtml, monthTag });
+              return rowHtml;
             }).join('');
             bodyEl.innerHTML = html;
+            try { applyTaskMonthFilter(); } catch(_){ }
           }
         } catch (err) {
           bodyEl.innerHTML = `<tr><td colspan='7' class='px-4 py-6 text-center text-red-600'>Lỗi khi tải dữ liệu: ${String(err.message || err)}</td></tr>`;
