@@ -285,9 +285,10 @@
           <button id="taskTrackingSearchBtn" type="submit" class="submit-btn px-8 py-3 rounded-lg text-white font-semibold transition text-base">🔍 Tìm kiếm</button>
         </div>
       </form>
-      <div class="flex items-center gap-2 mb-3">
+      <div class="flex items-center gap-3 mb-3">
         <label class="text-sm text-gray-700">Tháng</label>
         <input id="tt-month" type="month" class="input-field h-10 w-48"/>
+        <button id="tt-filter-off" type="button" class="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Tắt bộ lọc</button>
       </div>
       <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
         <table id="trackingTable" class="min-w-full text-sm border-collapse">
@@ -1128,12 +1129,26 @@
 
       (function initTTMonth(){
         const el = document.getElementById('tt-month');
+        const off = document.getElementById('tt-filter-off');
         if (!el) return;
         const d = new Date();
         const yy = d.getFullYear();
         const mm = String(d.getMonth()+1).padStart(2,'0');
         if (!el.value) el.value = `${yy}-${mm}`;
         if (!el._bound){ el.addEventListener('change', ()=> applyTaskMonthFilter()); el._bound = true; }
+        if (off && !off._bound){
+          off.addEventListener('click', ()=>{
+            try{
+              el.value = '';
+              // Render tất cả hàng từ cache
+              const bodyEl = document.getElementById('trackingTableBody');
+              if (Array.isArray(TT_CACHE_ROWS) && TT_CACHE_ROWS.length){
+                bodyEl.innerHTML = TT_CACHE_ROWS.map(r=> r.html).join('');
+              }
+            }catch(_){ }
+          });
+          off._bound = true;
+        }
       })();
 
       document.getElementById('taskTrackingForm').onsubmit = async function(e){
