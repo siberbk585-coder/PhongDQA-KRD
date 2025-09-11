@@ -673,18 +673,51 @@
         const ct = (resp.headers.get('content-type') || '').toLowerCase();
         if (ct.includes('application/json')) json = await resp.json();
         else { try { json = JSON.parse(await resp.text()); } catch { json = {}; } }
-        const rawRows = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : Array.isArray(json?.rows) ? json.rows : [];
-        return rawRows.map(rec=>{
-          const code = getCI(rec, ['code','ticketcode','ticket','id','ma']);
-          const date = getCI(rec, ['date','createdat','created_at','fbdate','ngay']);
-          const em = getCI(rec, ['email','fbemail']);
-          const content = getCI(rec, ['content','fbcontent','message','noidung']);
+
+        // Support multiple shapes:
+        // 1) [ {record...}, ... ]
+        // 2) { data: [...] } or { rows: [...] }
+        // 3) [ [records...], [attachments...] ] with Vietnamese keys
+        let records = [];
+        let attachments = [];
+        if (Array.isArray(json)) {
+          if (json.length && Array.isArray(json[0])) {
+            records = Array.isArray(json[0]) ? json[0] : [];
+            attachments = Array.isArray(json[1]) ? json[1] : [];
+          } else {
+            records = json;
+          }
+        } else if (Array.isArray(json?.data)) {
+          records = json.data;
+        } else if (Array.isArray(json?.rows)) {
+          records = json.rows;
+        }
+
+        // Build attachment map by ticket code if provided in separate array
+        const attMap = new Map();
+        attachments.forEach(a => {
+          const c = getCI(a, ['Mã Ticket','mã ticket','code','ticketcode','ticket','id','ma']);
+          const fileUrl = getCI(a, ['File đính kèm','file đính kèm','file','url','link']);
+          if (!c || !fileUrl) return;
+          if (!attMap.has(c)) attMap.set(c, []);
+          attMap.get(c).push(fileUrl);
+        });
+
+        return records.map(rec=>{
+          const code = getCI(rec, ['Mã Ticket','mã ticket','code','ticketcode','ticket','id','ma']);
+          const date = getCI(rec, ['Ngày nhận','ngày nhận','date','createdat','created_at','fbdate','ngay']);
+          const em = getCI(rec, ['Người gửi','người gửi','email','fbemail']);
+          const content = getCI(rec, ['Vấn để','Vấn đề','vấn để','vấn đề','content','fbcontent','message','noidung']);
           let files = getCI(rec, ['files','attachments','file','filenames']);
           if (typeof files === 'string') {
             files = files.includes(';') ? files.split(';').map(s=>s.trim()).filter(Boolean) : (files ? [files] : []);
           }
           if (!Array.isArray(files)) files = [];
-          const status = getCI(rec, ['status','trangthai']);
+          // Merge files from attachment map by code
+          if (code && attMap.has(code)) {
+            files = files.concat(attMap.get(code));
+          }
+          const status = getCI(rec, ['Tình trạng','tình trạng','status','trangthai']);
           return { code, date, email: em, content, files, status };
         });
       }
