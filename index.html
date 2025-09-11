@@ -87,6 +87,7 @@
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="testRequest">Phiếu Yêu Cầu Thử Nghiệm</button>
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="taskTracking">Theo dõi Công việc</button>
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="userGuide">Hướng dẫn sử dụng</button>
+      <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="feedback">Góp ý & Báo lỗi</button>
       
     </nav>
   </aside>
@@ -142,23 +143,20 @@
               <input type="hidden" name="componentStandard" id="componentStandard" />
               <div id="componentStandardNote" class="text-sm text-gray-600 mt-1 hidden"></div>
             </div>
-            <input name="sampleSubmissionNo" id="sampleSubmissionNo" type="number" min="1" placeholder="Lần gửi mẫu " class="input-field"/>
+            <input name="sampleSubmissionNo" id="sampleSubmissionNo" type="number" min="1" placeholder="Lần gửi mẫu " class="input-field hidden"/>
             <div id="testRequestChangeNote" class="hidden md:col-span-2">
               <input type="text" name="changeFromLastNote" placeholder="Mô tả thay đổi so với lần trước" class="input-field"/>
             </div>
             <select required name="requestPurpose" id="requestPurpose" class="input-field md:col-span-2">
               <option value="">Mục đích yêu cầu *</option>
-              <option value="Đánh giá SP mới">Đánh giá SP mới- Giai đoạn EV</option>
-              <option value="Đánh giá SP mới">Đánh giá SP mới- Giai đoạn DV</option>
-              <option value="Đánh giá thay đổi nhà cung cấp">Đánh giá thay đổi nhà cung cấp</option>
-              <option value="Đánh giá thay đổi 4M">Đánh giá thay đổi 4M</option>
-              <option value="Phản hồi lỗi thị trường">Phản hồi lỗi thị trường</option>
-              <option value="Kiểm tra định kỳ nội bộ">Kiểm tra định kỳ nội bộ</option>
-              <option value="Đánh giá đề xuất cải tiến">Đánh giá đề xuất cải tiến</option>
-              <option value="Phối hợp nghiên cứu công nghệ">Phối hợp nghiên cứu công nghệ</option>
-              <option value="Yêu cầu từ khách hàng/bên thứ 3">Yêu cầu từ khách hàng/bên thứ 3</option>
+              <option value="Đánh giá SP mới">Đánh giá Sản phẩm mới- Giai đoạn EV</option>
+              <option value="Đánh giá SP mới">Đánh giá Sản phẩm mới- Giai đoạn DV</option>
+              <option value="Đánh giá Sản phẩm SOP">Đánh giá linh kiện,sản phẩm SOP/Base </option>
             </select>
             <div id="purposeDescription" class="text-gray-600 text-sm md:col-span-2"></div>
+            <div id="projectCodeContainer" class="hidden md:col-span-2">
+              <input type="text" id="projectCode" name="projectCode" class="input-field" placeholder="Mã dự án" disabled />
+            </div>
             <div id="nccChangeFields" class="hidden md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <input type="text" id="altCode" name="altCode" class="input-field" placeholder="Mã tương tự/thay thế *" disabled />
               <input type="text" id="appliedModel" name="appliedModel" class="input-field" placeholder="Model áp dụng *" disabled />
@@ -168,7 +166,7 @@
             <input id="desiredCompletionDate" name="desiredCompletionDate" type="text" placeholder="Hạn mong muốn" required class="input-field"/>
             <input type="hidden" name="desiredCompletionDateTime" id="desiredCompletionDateTime" />
             <select name="personReceived" required class="input-field">
-              <option value="">Chọn người đã nhận mẫu *</option>
+              <option value="">Đầu mối nhận mẫu *</option>
               <option>Vũ Duy Minh</option>
               <option>Nguyễn Văn Linh</option>
               <option>Nguyễn Văn Hiếu</option>
@@ -223,7 +221,7 @@
           </p>
         </div>
         <!-- Keep data after submit -->
-        <label class="mt-3 flex items-center text-sm text-gray-600">
+        <label class="mt-3 flex items-center text-sm text-gray-600 hidden">
           <input type="checkbox" id="keepDataAfterSubmit" class="mr-2">
           Giữ dữ liệu sau khi gửi. (Dữ liệu đã nhập sẽ không bị xóa sau khi nhấn gửi)<br> Lưu ý!: không nhập 2 tác vụ có dữ liệu hoàn toàn giống nhau trong cùng 1 ngày.
         </label>
@@ -232,6 +230,53 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
         </button>
       </form>
+    </section>
+    <!-- Feedback & Bug Report Section -->
+    <section id="feedback" class="form-section w-full max-w-4xl bg-white p-8 rounded-lg shadow-md hidden">
+      <div class="mb-6">
+        <h2 class="text-3xl font-extrabold text-primary-blue tracking-wide mb-1">Góp ý & Báo lỗi</h2>
+        <div class="h-1 w-16 bg-primary-blue mb-2 rounded"></div>
+        <p class="text-base text-gray-500">Hãy cho chúng tôi biết góp ý hoặc vấn đề bạn gặp phải.</p>
+      </div>
+      <form id="feedbackForm" class="space-y-4" autocomplete="off">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input id="feedbackDate" name="fbDate" type="datetime-local" class="input-field" readonly />
+          <input name="fbEmail" type="email" placeholder="Email (không bắt buộc)" class="input-field" />
+        </div>
+        <textarea name="fbContent" rows="4" required placeholder="Mô tả chi tiết vấn đề/góp ý *" class="input-field"></textarea>
+        <div>
+          <label class="block text-sm text-gray-700 mb-1">File đính kèm (tùy chọn)</label>
+          <input type="file" id="feedbackFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" class="block w-full text-sm text-gray-700" />
+          <div id="feedbackUploadList" class="mt-2 text-sm text-gray-600"></div>
+        </div>
+        <div class="flex justify-end">
+          <button type="submit" class="submit-btn px-8 py-3 rounded-lg text-white font-semibold transition text-base">Gửi góp ý/báo lỗi</button>
+        </div>
+      </form>
+      <div class="mt-8">
+        <div class="flex items-center gap-3 mb-3">
+          <label class="text-sm text-gray-700">Email</label>
+          <input id="fbTrackEmail" type="email" class="input-field h-10 w-64" placeholder="Nhập email để tra cứu"/>
+          <button id="fbTrackBtn" type="button" class="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Tìm ticket</button>
+        </div>
+        <div class="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
+          <table id="feedbackTable" class="min-w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-gradient-to-r from-primary-blue to-blue-600 text-white">
+                <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Mã ticket</th>
+                <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Ngày gửi</th>
+                <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Email</th>
+                <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Nội dung</th>
+                <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Trạng thái</th>
+                <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">File</th>
+              </tr>
+            </thead>
+            <tbody id="feedbackTableBody" class="bg-white text-gray-900 divide-y divide-gray-200">
+              <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500 text-base">Nhập email và nhấn Tìm ticket.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
     <!-- Task Tracking -->
     <section id="taskTracking" class="form-section w-full max-w-7xl bg-white p-8 rounded-lg shadow-md hidden">
@@ -383,6 +428,10 @@
     // Endpoints for Form 1 (Test Request)
     const FORM_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/03a0df2e-f7e6-47aa-bb98-756589ad8b55";
     const FILE_UPLOAD_ENDPOINT = FORM_SUBMIT_ENDPOINT;
+    const FEEDBACK_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook-test/21a9aa69-4434-47e1-97fc-b7fb84adb43e";
+    const LOCAL_FEEDBACK_KEY = 'DQA_FEEDBACK_V1';
+    function __loadFeedback(){ try { return JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '[]'); } catch { return []; } }
+    function __saveFeedback(rec){ const cur = __loadFeedback(); cur.push(rec); localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(cur)); }
     // Sidebar navigation logic
     const navBtns = document.querySelectorAll('.nav-btn');
     const formSections = document.querySelectorAll('.form-section');
@@ -410,6 +459,13 @@
       if (el) el.value = localISO;
     }
     setCurrentDateTime('testRequestDate');
+    function setCurrentDateTimeIfEmpty(id) {
+      const dt = new Date();
+      const tzOffsetMs = dt.getTimezoneOffset() * 60000;
+      const localISO = new Date(dt.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = localISO;
+    }
     
     // Desired date constraints and hidden datetime submission
     (function setupDesiredDateField(){
@@ -467,17 +523,154 @@
       updateHidden();
     })();
 
+    // Feedback form toggle and behavior
+    (function setupFeedbackBox(){
+      const form = document.getElementById('feedbackForm');
+      const filesInput = document.getElementById('feedbackFiles');
+      const list = document.getElementById('feedbackUploadList');
+      if (!form) return;
+      setCurrentDateTimeIfEmpty('feedbackDate');
+
+      filesInput && filesInput.addEventListener('change', ()=>{
+        const files = Array.from(filesInput.files||[]);
+        if (!files.length) { list.innerHTML = ''; return; }
+        list.innerHTML = files.map(f=>`- ${f.name}`).join('<br/>');
+      });
+
+      document.getElementById('feedbackForm').onsubmit = async function(e){
+        e.preventDefault();
+        const btn = this.querySelector("button[type=submit]");
+        const original = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = "<span class='spinner'></span><span style='margin-left:8px'>Đang gửi...</span>"; }
+
+        const data = new FormData(this);
+        // Mark as feedback type for backend
+        data.append('formType', 'feedback');
+
+        const files = Array.from((document.getElementById('feedbackFiles')?.files)||[]);
+        files.forEach(f=> data.append('files[]', f, f.name));
+
+        try{
+          let resp = await fetch(FEEDBACK_SUBMIT_ENDPOINT, { method: 'POST', body: data });
+          if (!resp.ok) throw new Error(await resp.text());
+          // Lưu local để theo dõi
+          try {
+            const code = `FB.${Date.now().toString().slice(-8)}`;
+            __saveFeedback({
+              code,
+              date: (document.getElementById('feedbackDate')?.value || '').toString(),
+              email: (this.querySelector('input[name="fbEmail"]')?.value || '').toString().trim(),
+              content: (this.querySelector('textarea[name="fbContent"]')?.value || '').toString().trim(),
+              files: files.map(f=> f.name),
+              status: 'Đã gửi'
+            });
+          } catch(_) {}
+          if (btn) { btn.innerHTML = 'Đã gửi!'; setTimeout(()=>{ btn.innerHTML = original; btn.disabled=false; }, 8000); }
+          this.reset();
+          setCurrentDateTimeIfEmpty('feedbackDate');
+          if (list) list.innerHTML = '';
+        }catch(err){
+          alert('Gửi góp ý thất bại: ' + err);
+          if (btn) { btn.innerHTML = original; btn.disabled=false; }
+        }
+      };
+    })();
+
+    // Feedback tracking table (local-only fallback)
+    (function setupFeedbackTracking(){
+      const btn = document.getElementById('fbTrackBtn');
+      const emailInput = document.getElementById('fbTrackEmail');
+      const bodyEl = document.getElementById('feedbackTableBody');
+      if (!btn || !emailInput || !bodyEl) return;
+      function toDDMMYYYY(val){
+        try {
+          const d = new Date(val);
+          if (isNaN(d)) return val || '';
+          const dd = String(d.getDate()).padStart(2,'0');
+          const mm = String(d.getMonth()+1).padStart(2,'0');
+          const yyyy = d.getFullYear();
+          const hh = String(d.getHours()).padStart(2,'0');
+          const mi = String(d.getMinutes()).padStart(2,'0');
+          return `${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+        } catch { return val || ''; }
+      }
+      function getCI(obj, keys){
+        if (!obj) return '';
+        const lower = Object.keys(obj).reduce((acc,k)=>{ acc[k.toLowerCase()] = obj[k]; return acc; }, {});
+        for (const k of keys) { const v = lower[k.toLowerCase()]; if (v !== undefined) return v; }
+        return '';
+      }
+      function render(rows){
+        if (!rows.length){
+          bodyEl.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500 text-base">Không có dữ liệu</td></tr>';
+          return;
+        }
+        bodyEl.innerHTML = rows.map(r=>{
+          const fileHtml = (Array.isArray(r.files) && r.files.length) ? r.files.join('<br/>') : '-';
+          const status = (r.status||'').toLowerCase().includes('done') ? 'Hoàn thành' : (r.status||'Đã gửi');
+          return `
+            <tr>
+              <td class="px-4 py-2">${r.code||'-'}</td>
+              <td class="px-4 py-2">${toDDMMYYYY(r.date||'')}</td>
+              <td class="px-4 py-2">${r.email||'-'}</td>
+              <td class="px-4 py-2">${(r.content||'').replace(/</g,'&lt;').slice(0,160)}${(r.content||'').length>160?'…':''}</td>
+              <td class="px-4 py-2">${status}</td>
+              <td class="px-4 py-2">${fileHtml}</td>
+            </tr>`;
+        }).join('');
+      }
+      async function fetchFromBackend(email){
+        const payload = { action: 'list', email };
+        const resp = await fetch(FEEDBACK_SUBMIT_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        let json = null; const ct = resp.headers.get('content-type') || '';
+        if (ct.includes('application/json')) json = await resp.json();
+        else { try { json = JSON.parse(await resp.text()); } catch { json = {}; } }
+        const rawRows = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : Array.isArray(json?.rows) ? json.rows : [];
+        return rawRows.map(rec=>{
+          const code = getCI(rec, ['code','ticketcode','ticket','id','ma']);
+          const date = getCI(rec, ['date','createdat','created_at','fbdate','ngay']);
+          const em = getCI(rec, ['email','fbemail']);
+          const content = getCI(rec, ['content','fbcontent','message','noidung']);
+          let files = getCI(rec, ['files','attachments','file','filenames']);
+          if (typeof files === 'string') {
+            files = files.includes(';') ? files.split(';').map(s=>s.trim()).filter(Boolean) : (files ? [files] : []);
+          }
+          if (!Array.isArray(files)) files = [];
+          const status = getCI(rec, ['status','trangthai']);
+          return { code, date, email: em, content, files, status };
+        });
+      }
+      btn.addEventListener('click', async ()=>{
+        const email = (emailInput.value||'').trim().toLowerCase();
+        bodyEl.innerHTML = "<tr><td colspan='6' class='px-4 py-4 text-center text-gray-500'><span class='spinner mr-2'></span>Đang tải...</td></tr>";
+        try{
+          let rows = await fetchFromBackend(email);
+          if (email) rows = rows.filter(r => (r.email||'').toLowerCase() === email);
+          rows = rows.slice().sort((a,b)=> (String(b.date||'')).localeCompare(String(a.date||'')));
+          if (!rows.length) {
+            // Fallback local nếu backend không trả dữ liệu
+            rows = __loadFeedback();
+            if (email) rows = rows.filter(r => (r.email||'').toLowerCase() === email);
+          }
+          render(rows);
+        }catch(err){
+          let rows = __loadFeedback();
+          if (email) rows = rows.filter(r => (r.email||'').toLowerCase() === email);
+          render(rows);
+        }
+      });
+    })();
+
     // Dynamic fields logic for Test Request Form
     // a. Purpose dropdown description
     const purposeDescriptions = {
-      "Đánh giá SP mới": "Sản phẩm/linh kiện mới sắp SOP, cần kiểm tra độ bền và phù hợp tiêu chuẩn kỹ thuật trước khi sản xuất đại trà.",
-      "Đánh giá thay đổi nhà cung cấp": "Linh kiện/sản phẩm thay đổi nhà cung cấp; cần kiểm tra lại để đảm bảo chất lượng không bị ảnh hưởng.",
-      "Đánh giá thay đổi 4M": "Có thay đổi về Vật liệu, Máy móc, Phương pháp, Nhân sự; cần đánh giá rủi ro liên quan.",
-      "Phản hồi lỗi thị trường": "Sản phẩm đang sử dụng phát sinh khiếu nại/lỗi từ thị trường; kiểm tra lại để xác định nguyên nhân.",
-      "Kiểm tra định kỳ nội bộ": "Thử nghiệm theo kế hoạch nội bộ (QA, MKT, kiểm định/hiệu chuẩn thiết bị định kỳ).",
-      "Đánh giá đề xuất cải tiến": "Đề xuất cải tiến về thiết kế/cấu trúc/chi phí; cần xác nhận bằng thử nghiệm.",
-      "Phối hợp nghiên cứu công nghệ": "Kiểm tra đặc tính/tính năng kỹ thuật trong quá trình nghiên cứu, phối hợp phát triển công nghệ mới.",
-      "Yêu cầu từ khách hàng/bên thứ 3": "Yêu cầu xác nhận kỹ thuật theo tiêu chuẩn riêng của khách hàng/đối tác/bên thứ ba.",
+      "Đánh giá SP mới": "Sản phẩm/linh kiện mới thuộc các dự án phát triển KRD, cần kiểm tra trước khi sản xuất đại trà.",
+      "Đánh giá Sản phẩm SOP": "Liên quan đến sản phẩm/linh kiện đã SOP, cần kiểm tra chất lượng và đảm bảo phù hợp với tiêu chuẩn kỹ thuật.",
     };
     document.getElementById('requestPurpose').onchange = (e)=>{
       const val = e.target.value || "";
@@ -491,6 +684,45 @@
         container.classList.toggle('hidden', !showNcc);
         alt.disabled = !showNcc; model.disabled = !showNcc;
         alt.required = showNcc;  model.required = showNcc;
+      }
+
+      // EV/DV: Hiển thị "Mã dự án" và auto chọn "Nguyễn Văn Hiếu"
+      const projContainer = document.getElementById('projectCodeContainer');
+      const projInput = document.getElementById('projectCode');
+      const selectedText = (e.target.options && e.target.selectedIndex >= 0)
+        ? (e.target.options[e.target.selectedIndex].text || '')
+        : '';
+      const isEvOrDv = /\bEV\b/i.test(selectedText) || /\bDV\b/i.test(selectedText);
+      if (projContainer && projInput) {
+        projContainer.classList.toggle('hidden', !isEvOrDv);
+        projInput.disabled = !isEvOrDv;
+        projInput.required = isEvOrDv;
+        if (!isEvOrDv) projInput.value = '';
+      }
+      if (isEvOrDv) {
+        const personSel = document.querySelector('select[name="personReceived"]');
+        if (personSel) {
+          let targetValue = '';
+          Array.from(personSel.options).forEach(opt => {
+            const t = (opt.text || opt.textContent || '').trim();
+            if (t === 'Nguyễn Văn Hiếu') targetValue = opt.value || t;
+          });
+          if (targetValue) personSel.value = targetValue;
+        }
+      }
+
+      // SOP/Base: auto chọn "Nguyễn Văn Linh"
+      const isSopBase = /SOP/i.test(selectedText) || /Base/i.test(selectedText);
+      if (isSopBase && !isEvOrDv) {
+        const personSel = document.querySelector('select[name="personReceived"]');
+        if (personSel) {
+          let targetValue = '';
+          Array.from(personSel.options).forEach(opt => {
+            const t = (opt.text || opt.textContent || '').trim();
+            if (t === 'Nguyễn Văn Linh') targetValue = opt.value || t;
+          });
+          if (targetValue) personSel.value = targetValue;
+        }
       }
     };
     try { document.getElementById('requestPurpose').dispatchEvent(new Event('change')); } catch(_) {}
@@ -725,6 +957,10 @@
         { name: 'Nguyễn Mạnh Hùng', dept: 'KTSX', email: 'hung.nguyen2@karofi.vn' },
         { name: 'Nguyễn Hồng Hiếu', dept: 'KTSX', email: 'hieu.nguyen@karofi.vn' },
         { name: 'Đàm Huy Hùng', dept: 'SC', email: 'hung.dam@karofi.vn' },
+        {name: 'Khương Đức Tình', dept: 'NCTN', email: 'tinh.khuong@karofi.vn' },
+        {name: 'Đặng Thị Chín', dept: 'NCTN', email: 'chindt@karofi.vn' },
+        {name: 'Hoàng Văn Thành', dept: 'NCTN', email: 'thanhhv@karofi.vn' },
+        {name: 'Nguyễn Thị Thủy', dept: 'NCTN', email: 'thuynt3@karofi.vn' },
       ];
 
       function normalize(s){
@@ -972,6 +1208,7 @@
           componentType: String(data.componentType || '').trim(),
           componentStandard: String(componentStd),
           purpose: String(data.requestPurpose || '').trim(),
+          projectCode: String(data.projectCode || '').trim(),
           vendor: String(data.supplier || '').trim(),
           qtySamples: String(data.numSamples || '').trim(),
           desiredDate: String(normalizedDesiredDate || '').trim(),
