@@ -468,6 +468,18 @@
       if (el && !el.value) el.value = localISO;
     }
     
+    // Generate Feedback ticket code, e.g., FB.DDMMYY-XXXXXX
+    function generateFeedbackTicketCode(){
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2,'0');
+      const mm = String(now.getMonth()+1).padStart(2,'0');
+      const yy = String(now.getFullYear()).slice(-2);
+      const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let rnd = '';
+      for (let i=0;i<6;i++) rnd += alphabet[Math.floor(Math.random()*alphabet.length)];
+      return `FB.${dd}${mm}${yy}-${rnd}`;
+    }
+    
     // Desired date constraints and hidden datetime submission
     (function setupDesiredDateField(){
       const input = document.getElementById('desiredCompletionDate');
@@ -547,6 +559,9 @@
         const data = new FormData(this);
         // Mark as feedback type for backend
         data.append('formType', 'feedback');
+        // Generate ticket code and append
+        const clientTicketCode = generateFeedbackTicketCode();
+        data.append('ticketCode', clientTicketCode);
 
         const files = Array.from((document.getElementById('feedbackFiles')?.files)||[]);
         files.forEach(f=> data.append('files[]', f, f.name));
@@ -554,11 +569,23 @@
         try{
           let resp = await fetch(FEEDBACK_SUBMIT_ENDPOINT, { method: 'POST', body: data });
           if (!resp.ok) throw new Error(await resp.text());
+          // Try to get ticket code from server response if provided
+          let serverTicketCode = '';
+          try {
+            const ct = (resp.headers.get('content-type') || '').toLowerCase();
+            let payload = null;
+            if (ct.includes('application/json')) payload = await resp.json();
+            else { try { payload = JSON.parse(await resp.text()); } catch { payload = null; } }
+            if (payload && typeof payload === 'object') {
+              const lower = Object.keys(payload).reduce((acc,k)=>{ acc[k.toLowerCase()] = payload[k]; return acc; }, {});
+              serverTicketCode = lower['code'] || lower['ticketcode'] || lower['ticket'] || lower['id'] || lower['ma'] || '';
+            }
+          } catch(_) { /* ignore parse errors */ }
+          const finalTicketCode = (serverTicketCode || clientTicketCode).toString();
           // Lưu local để theo dõi
           try {
-            const code = `FB.${Date.now().toString().slice(-8)}`;
             __saveFeedback({
-              code,
+              code: finalTicketCode,
               date: (document.getElementById('feedbackDate')?.value || '').toString(),
               email: (this.querySelector('input[name="fbEmail"]')?.value || '').toString().trim(),
               content: (this.querySelector('textarea[name="fbContent"]')?.value || '').toString().trim(),
@@ -566,7 +593,7 @@
               status: 'Đã gửi'
             });
           } catch(_) {}
-          if (btn) { btn.innerHTML = 'Đã gửi!'; setTimeout(()=>{ btn.innerHTML = original; btn.disabled=false; }, 8000); }
+          if (btn) { btn.innerHTML = `Đã gửi: ${finalTicketCode}`; setTimeout(()=>{ btn.innerHTML = original; btn.disabled=false; }, 12000); }
           this.reset();
           setCurrentDateTimeIfEmpty('feedbackDate');
           if (list) list.innerHTML = '';
@@ -621,14 +648,29 @@
         }).join('');
       }
       async function fetchFromBackend(email){
-        const payload = { action: 'list', email };
-        const resp = await fetch(FEEDBACK_LIST_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        let json = null; const ct = resp.headers.get('content-type') || '';
+        // Try GET with query params first, then fallback to POST JSON
+        let resp = null;
+        let json = null;
+        const params = new URLSearchParams();
+        params.append('action', 'list');
+        if (email) params.append('email', email);
+        params.append('_ts', Date.now().toString());
+        try {
+          resp = await fetch(`${FEEDBACK_LIST_ENDPOINT}?${params.toString()}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+          if (!resp.ok) throw new Error(await resp.text());
+        } catch (err) {
+          const payload = { action: 'list', email };
+          resp = await fetch(FEEDBACK_LIST_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!resp.ok) throw new Error(await resp.text());
+        }
+        const ct = (resp.headers.get('content-type') || '').toLowerCase();
         if (ct.includes('application/json')) json = await resp.json();
         else { try { json = JSON.parse(await resp.text()); } catch { json = {}; } }
         const rawRows = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : Array.isArray(json?.rows) ? json.rows : [];
