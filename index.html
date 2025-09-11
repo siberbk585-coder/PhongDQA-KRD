@@ -428,7 +428,8 @@
     // Endpoints for Form 1 (Test Request)
     const FORM_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/03a0df2e-f7e6-47aa-bb98-756589ad8b55";
     const FILE_UPLOAD_ENDPOINT = FORM_SUBMIT_ENDPOINT;
-    const FEEDBACK_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook-test/21a9aa69-4434-47e1-97fc-b7fb84adb43e";
+    const FEEDBACK_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/21a9aa69-4434-47e1-97fc-b7fb84adb43e";
+    const FEEDBACK_LIST_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/925155db-ed53-4a3a-bd4d-1ba8378a545c";
     const LOCAL_FEEDBACK_KEY = 'DQA_FEEDBACK_V1';
     function __loadFeedback(){ try { return JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '[]'); } catch { return []; } }
     function __saveFeedback(rec){ const cur = __loadFeedback(); cur.push(rec); localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(cur)); }
@@ -621,7 +622,7 @@
       }
       async function fetchFromBackend(email){
         const payload = { action: 'list', email };
-        const resp = await fetch(FEEDBACK_SUBMIT_ENDPOINT, {
+        const resp = await fetch(FEEDBACK_LIST_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(payload)
