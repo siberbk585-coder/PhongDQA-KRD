@@ -140,6 +140,9 @@
               <input required name="componentType" id="componentType" list="componentTypeOptions" type="text" placeholder="Loại linh kiện *" class="input-field"/>
               <datalist id="componentTypeOptions"></datalist>
               <div class="text-xs text-gray-500 mt-1">Nếu linh kiện không có trong danh sách sẽ tự động nhập: "Linh kiện khác"</div>
+              <div class="mt-2">
+                <button type="button" id="componentModalBtn" class="px-3 py-2 rounded-lg border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 transition">Chọn từ danh sách</button>
+              </div>
               <input type="hidden" name="componentStandard" id="componentStandard" />
               <div id="componentStandardNote" class="text-sm text-gray-600 mt-1 hidden"></div>
             </div>
@@ -371,6 +374,32 @@
     </section>
     
   </main>
+  <!-- Modal chọn loại linh kiện -->
+  <div id="componentModal" class="fixed inset-0 z-50 hidden">
+    <div id="componentModalOverlay" class="absolute inset-0 bg-black bg-opacity-30"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-blue-200 overflow-hidden">
+        <div class="px-4 py-3 bg-gradient-to-r from-primary-blue to-blue-600 text-white flex items-center justify-between">
+          <h3 class="font-semibold">Chọn loại linh kiện</h3>
+          <button type="button" id="componentModalClose" class="px-3 py-1 rounded bg-white/20 hover:bg-white/30">Đóng</button>
+        </div>
+        <div class="p-4 space-y-3">
+          <input id="componentSearch" type="text" class="input-field" placeholder="Tìm theo tên loại linh kiện..."/>
+          <div class="overflow-auto max-h-96 border border-blue-100 rounded-lg">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="bg-blue-50 text-blue-900">
+                  <th class="px-4 py-2 text-left">Tên loại linh kiện</th>
+                  <th class="px-4 py-2 text-left">Công chuẩn (giờ)</th>
+                </tr>
+              </thead>
+              <tbody id="componentTableBody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- Common Styles -->
   <style>
     .input-field {
@@ -832,47 +861,117 @@
       const datalist = document.getElementById('componentTypeOptions');
       const hiddenStd = document.getElementById('componentStandard');
       const note = document.getElementById('componentStandardNote');
+      const modalBtn = document.getElementById('componentModalBtn');
+      const modal = document.getElementById('componentModal');
+      const modalOverlay = document.getElementById('componentModalOverlay');
+      const modalClose = document.getElementById('componentModalClose');
+      const tableBody = document.getElementById('componentTableBody');
+      const searchInput = document.getElementById('componentSearch');
       if (!input || !datalist || !hiddenStd || !note) return;
 
+      // Bỏ dropdown tùy biến để tránh trùng với modal chọn
+
       const COMPONENT_ITEMS = [
+        { name: 'Băng dính xốp', std: 7.7 },
+        { name: 'Bình áp', std: 12.5 },
+        { name: 'Bình nóng', std: 16.7 },
+        { name: 'Block', std: 19.7 },
+        { name: 'Bộ cốc Hydrogen', std: 14.5 },
+        { name: 'Bộ dây điện', std: 15.9 },
+        { name: 'Bộ điện phân Alkaline', std: 12.1 },
+        { name: 'Bộ kính viền nhôm', std: 12.5 },
+        { name: 'Bơm áp', std: 15.7 },
+        { name: 'Bông', std: 3.7 },
+        { name: 'Công tắc', std: 8.9 },
+        { name: 'Cút', std: 9.1 },
+        { name: 'Dàn lạnh', std: 13.7 },
+        { name: 'Dàn tản nhiệt', std: 18 },
+        { name: 'Dây điện', std: 12.4 },
+        { name: 'Dây RO 1/4', std: 16.2 },
+        { name: 'Dây RO 3/8', std: 15.2 },
+        { name: 'Dây silicone', std: 8.1 },
+        { name: 'Dây TDS', std: 14.6 },
+        { name: 'Đồng sunfat', std: 0.8 },
+        { name: 'Flow', std: 11 },
+        { name: 'Gioăng chỉ', std: 3.9 },
+        { name: 'Hạt CaCO3', std: 12.4 },
+        { name: 'Hạt Cation', std: 4.2 },
+        { name: 'Hạt Corosex', std: 10.4 },
+        { name: 'Hạt hồng ngoại', std: 9.1 },
+        { name: 'Hạt ORP', std: 6.6 },
+        { name: 'Khóa vòi nhựa', std: 8.5 },
+        { name: 'Lõi 6HP', std: 15.7 },
+        { name: 'Lõi Alkaline', std: 11.7 },
+        { name: 'Lõi hồng ngoại', std: 13 },
+        { name: 'Lõi hydrogen EZ270', std: 12.3 },
+        { name: 'Lõi khoáng', std: 11.8 },
+        { name: 'Lõi khoáng EZ', std: 13 },
+        { name: 'Lõi lọc số 1', std: 7.3 },
+        { name: 'Lõi lọc số 2', std: 7.9 },
+        { name: 'Lõi lọc số 3', std: 8.2 },
+        { name: 'Lõi OCB', std: 13.5 },
+        { name: 'Lõi Post Carbon', std: 22.3 },
+        { name: 'Lõi PP', std: 7.1 },
+        { name: 'Lõi T33', std: 12.1 },
+        { name: 'Lõi than nano', std: 12.1 },
+        { name: 'Màng cao su', std: 10 },
+        { name: 'Màng RO', std: 12 },
+        { name: 'Màng RO EZ', std: 14.7 },
+        { name: 'Mỡ', std: 6.5 },
+        { name: 'Mực In', std: 10.5 },
+        { name: 'Nắp cốc', std: 4.8 },
+        { name: 'Nguồn xung', std: 12.3 },
+        { name: 'Phao điện từ', std: 10.5 },
+        { name: 'Phin lọc', std: 10.2 },
+        { name: 'Phôi lõi PP', std: 7.3 },
+        { name: 'Rơ le nhiệt lạnh', std: 19.55 },
+        { name: 'Tem', std: 6.2 },
+        { name: 'Thân cốc', std: 6.5 },
+        { name: 'Than hoạt tính', std: 17.9 },
+        { name: 'Thân vỏ màng', std: 6.5 },
+        { name: 'Thùng sóng AB', std: 10.1 },
+        { name: 'Thùng sóng BC', std: 10.1 },
+        { name: 'Thùng sóng C', std: 10.1 },
+        { name: 'Tôi kính', std: 9.6 },
+        { name: 'Túi PE', std: 3.2 },
+        { name: 'Van 1 chiều', std: 13.6 },
+        { name: 'Van 4 cửa', std: 15.1 },
+        { name: 'Van áp cao', std: 16 },
+        { name: 'Van áp thấp', std: 15.7 },
+        { name: 'Van điện từ', std: 16.9 },
+        { name: 'Van khóa', std: 12.4 },
+        { name: 'Van xả bình áp', std: 17.4 },
+        { name: 'Viền nhôm kính', std: 9 },
+        { name: 'Vòi gạt', std: 12.5 },
+        { name: 'Vòi HCV', std: 8.7 },
+        { name: 'Xốp', std: 2.5 },
+        { name: 'Xốp bảo ôn', std: 2 },
+        { name: 'Mạch', std: 24 },
         { name: 'Máy lọc nước', std: 32 },
         { name: 'Máy lọc nước (Chỉ rung lắc)', std: 6 },
         { name: 'Máy lọc nước (Base/rà soát tài liệu)', std: 12 },
-        { name: 'Linh kiện cơ khí kết cấu M25', std: 17 },
-        { name: 'Tem nhãn, Thùng carton,Băng dính,Túi bóng PE,Xốp,Đai bình áp', std: 16 },
-        { name: 'Ốc vít, stopper', std: 16 },
-        { name: 'Lõi lọc thô (PP, OCB, CTO, UDF)', std: 19 },
-        { name: 'Cốc, Nắp cốc, vỏ màng, vỏ lõi, vỏ bình', std: 17 },
-        { name: 'Dây RO', std: 23 },
-        { name: 'Thân vỏ màng, Nắp vỏ màng', std: 17 },
-        { name: 'Bình áp,Bình chứa', std: 23 },
-        { name: 'Vòi,bộ khóa vòi, củ vòi, ruột vòi', std: 23 },
-        { name: 'Các loại hạt trong lõi, than, khoáng đá, Corosex, ORP, CaCO3...', std: 19 },
-        { name: 'Lõi chức năng 6hp,Hydrogen,Alkaline,Nano silver, khoáng đá, hồng ngoại,T33..', std: 19 },
-        { name: 'Màng RO,UF', std: 24 },
-        { name: 'Bộ điện phân Alkaline, Hydrogen, Bộ điện phân', std: 24 },
-        { name: 'Bộ dây điện, dây nguồn', std: 23 },
-        { name: 'Bơm', std: 25 },
-        { name: 'Nguồn xung, nguồn cơ, Mạch điện tử', std: 23 },
-        { name: 'Phin lọc, Block', std: 25 },
-        { name: 'Ốp sắt, ốp nhựa', std: 17 },
-        { name: 'Thân tủ, vỏ tủ, khay nóng lạnh', std: 17 },
-        { name: 'Nam châm, Chốt định, cánh,dây thít,dây đai,keo silicone, keo nến,ống bảo ôn', std: 16 },
-        { name: 'Kính', std: 17 },
-        { name: 'Van áp thấp,Van áp trung, Van áp cao, Van điện từ, Van bình áp, Van xả tay, Van TDS, Van 1 chiều, Van 4 cửa, Van giảm áp', std: 23 },
-        { name: 'Cút, ốc', std: 23 },
-        { name: 'Gioăng, Linh kiện hạt nối nhanh', std: 23 },
-        { name: 'Bình nóng, Bình lạnh, Bình tản nhiệt, Gas lạnh', std: 25 },
-        { name: 'Dàn nóng, Dàn lạnh', std: 25 },
-        { name: 'Ống đồng, ống Inox, ống PVC, ống nhựa cứng', std: 25 },
-        { name: 'Thermostar cơ, Cảm biến NTC', std: 25 },
-        { name: 'Giá RO, Đinh, đế tủ, Linh kiện bắt vào thân tủ', std: 17 },
-        { name: 'Linh kiện khác', std: 10 }
+        { name: 'Công chuẩn 1 ngày', std: 8 },
+        { name: 'Công chuẩn 2 ngày', std: 16 },
+        { name: 'Công chuẩn 3 ngày', std: 24 },
+        { name: 'Công chuẩn 4 ngày', std: 32 },
+        { name: 'Công chuẩn 5 ngày', std: 40 }
       ];
 
-      // Populate datalist for component type
-      // Exclude "Linh kiện khác" from suggestions
-      datalist.innerHTML = COMPONENT_ITEMS.filter(i=>i.name!=="Linh kiện khác").map(i=>`<option value="${i.name}"></option>`).join('');
+      // Gợi ý theo nội dung nhập ở ô "Loại linh kiện" (không còn phụ thuộc vào Tên sản phẩm)
+      function renderOptions(query){
+        const n = normalize(query);
+        if (!n) { datalist.innerHTML = ''; return; }
+        const items = COMPONENT_ITEMS
+          .filter(i => i.name !== 'Linh kiện khác' && (!n || normalize(i.name).includes(n)))
+          .sort((a,b)=> a.name.localeCompare(b.name))
+          .slice(0,50)
+          .map(i=>`<option value="${i.name}"></option>`)
+          .join('');
+        datalist.innerHTML = items;
+      }
+      renderOptions('');
+
+      // Đã loại bỏ renderDropdown/showDropdown/hideDropdown
 
       function normalize(s){
         return (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
@@ -899,9 +998,12 @@
         note.textContent = '';
       }
 
-      input.addEventListener('input', updateStandard);
+      input.addEventListener('input', ()=>{ renderOptions(input.value); updateStandard(); });
       input.addEventListener('change', updateStandard);
-      input.addEventListener('blur', updateStandard);
+      input.addEventListener('blur', ()=>{ updateStandard(); });
+      // Không tự mở danh sách khi focus để tránh dư thừa
+
+      // Đã bỏ lắng nghe click trên dropdown tùy biến
 
       // Drag-and-drop text support
       ;['dragenter','dragover'].forEach(ev=>{
@@ -924,71 +1026,41 @@
       // Expose data for other modules
       window.__resolveComponentStandard = (val)=>resolveStandard(val||'').std || 0;
       window.__componentItems = COMPONENT_ITEMS.slice();
+
+      // ===== Modal listing logic =====
+      function openModal(){ if (modal) modal.classList.remove('hidden'); }
+      function closeModal(){ if (modal) modal.classList.add('hidden'); }
+      function renderTable(filter){
+        if (!tableBody) return;
+        const n = normalize(filter);
+        const rows = COMPONENT_ITEMS
+          .filter(i => i.name !== 'Linh kiện khác' && (!n || normalize(i.name).includes(n)))
+          .sort((a,b)=> a.name.localeCompare(b.name));
+        if (!rows.length){
+          tableBody.innerHTML = '<tr><td colspan="2" class="px-4 py-3 text-gray-500">Không có dữ liệu</td></tr>';
+          return;
+        }
+        tableBody.innerHTML = rows.map(i=>`<tr class="hover:bg-blue-50 cursor-pointer">
+            <td class="px-4 py-2">${i.name}</td>
+            <td class="px-4 py-2">${i.std}</td>
+          </tr>`).join('');
+      }
+      function handleRowClick(e){
+        const tr = e.target?.closest('tr');
+        if (!tr) return;
+        const name = tr.children?.[0]?.textContent?.trim() || '';
+        const std = tr.children?.[1]?.textContent?.trim() || '';
+        if (name){ input.value = name; hiddenStd.value = std || '0'; try{ input.dispatchEvent(new Event('input')); }catch(_){} }
+        closeModal();
+      }
+      if (tableBody && !tableBody._bound){ tableBody.addEventListener('click', handleRowClick); tableBody._bound = true; }
+      if (searchInput && !searchInput._bound){ searchInput.addEventListener('input', ()=> renderTable(searchInput.value||'')); searchInput._bound = true; }
+      if (modalBtn && !modalBtn._bound){ modalBtn.addEventListener('click', ()=>{ renderTable(''); openModal(); }); modalBtn._bound = true; }
+      if (modalOverlay && !modalOverlay._bound){ modalOverlay.addEventListener('click', closeModal); modalOverlay._bound = true; }
+      if (modalClose && !modalClose._bound){ modalClose.addEventListener('click', closeModal); modalClose._bound = true; }
     })();
 
-    // Link product name keywords to filter component type suggestions
-    (function linkProductNameToComponentType(){
-      const productNameInput = document.getElementById('productName');
-      const compInput = document.getElementById('componentType');
-      const compList = document.getElementById('componentTypeOptions');
-      if (!productNameInput || !compInput || !compList) return;
-
-      function normalize(s){
-        return (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
-      }
-
-      function scoreCandidate(query, candidate){
-        const q = normalize(query);
-        const c = normalize(candidate);
-        if (!q) return 0;
-        let score = 0;
-        q.split(/\s+/).filter(Boolean).forEach(tok=>{
-          if (c.includes(tok)) score += 2;
-        });
-        // bonus if startsWith any token
-        const first = q.split(/\s+/).filter(Boolean)[0] || '';
-        if (first && c.startsWith(first)) score += 1;
-        return score;
-      }
-
-      function updateComponentSuggestions(){
-        const items = window.__componentItems || [];
-        const q = productNameInput.value || '';
-        const ranked = items
-          .map(i=>({ name: i.name, std: i.std, s: scoreCandidate(q, i.name) }))
-          .filter(x=>x.s > 0 || !q)
-          .sort((a,b)=> b.s - a.s || a.name.localeCompare(b.name));
-        const take = (q ? ranked.slice(0, 20) : items.slice(0, 50));
-        const otherName = 'Linh kiện khác';
-        const names = take.map(i=>i.name).filter(n=>n!==otherName);
-        compList.innerHTML = names.map(n=>`<option value="${n}"></option>`).join('');
-        // If current componentType empty and there is a strong candidate, prefill suggestion (not forced)
-        if (!compInput.value && q && ranked.length && ranked[0].s >= 2) {
-          compInput.setAttribute('placeholder', `Gợi ý: ${ranked[0].name}`);
-        } else if (!q) {
-          compInput.setAttribute('placeholder', 'Loại linh kiện *');
-        }
-      }
-
-      productNameInput.addEventListener('input', updateComponentSuggestions);
-      productNameInput.addEventListener('blur', updateComponentSuggestions);
-      // On blur only: if no suggestions match and component type empty, set to "Linh kiện khác"
-      productNameInput.addEventListener('blur', function(){
-        const items = window.__componentItems || [];
-        const q = productNameInput.value || '';
-        const ranked = items
-          .map(i=>({ name: i.name, std: i.std, s: scoreCandidate(q, i.name) }))
-          .filter(x=>x.s > 0 || !q)
-          .sort((a,b)=> b.s - a.s || a.name.localeCompare(b.name));
-        const otherName = 'Linh kiện khác';
-        if (q && ranked.length === 0 && !compInput.value) {
-          compInput.value = otherName;
-          try { compInput.dispatchEvent(new Event('input')); } catch(_){ }
-        }
-      });
-      // initial
-      updateComponentSuggestions();
-    })();
+    // Bỏ liên kết gợi ý theo "Tên sản phẩm/linh kiện"; gợi ý đã chuyển sang lắng nghe trực tiếp ô "Loại linh kiện" ở trên
 
     // A. Sender auto-complete and auto-fill email/department
     (function setupSenderAutocomplete(){
