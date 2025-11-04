@@ -1930,7 +1930,7 @@
         })(this);
         const isSpecial = data.testType === 'special';
         const submissionRound = parseInt(data.sampleSubmissionNo || '0', 10) || 0;
-        const normalizedRequestDate = (data.requestDate || '').toString().slice(0,10);
+        const normalizedRequestDate = (data.requestDate || '').toString().slice(0,16).replace('T', ' ');
         const normalizedDesiredDate = (data.desiredCompletionDate || '').toString().slice(0,10);
         const componentStd = (function(){
           let s = Number(data.componentStandard || 0);
