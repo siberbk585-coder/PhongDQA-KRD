@@ -20,6 +20,7 @@
       }
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -86,6 +87,7 @@
     <nav class="flex flex-col gap-2 mt-2">
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="testRequest">Phiếu Yêu Cầu Thử Nghiệm</button>
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="taskTracking">Theo dõi Công việc</button>
+      <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="form4">Bảng kế hoạch</button>
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="userGuide">Hướng dẫn sử dụng</button>
       <button class="nav-btn py-2 px-4 rounded transition hover:bg-sidebar-hover text-left text-base" data-target="feedback">Góp ý & Báo lỗi</button>
       
@@ -134,7 +136,7 @@
         <div class="section-card section-b">
           <h3 class="text-lg font-semibold text-primary-blue mb-2">B. Thông tin sản phẩm/linh kiện</h3>
           <!-- Image reading button -->
-          <div class="mb-4 flex items-center gap-2">
+          <div class="mb-4 flex items-center gap-2 hidden">
             <button type="button" id="readImageBtn" class="px-4 py-2 rounded-lg border-2 border-green-500 bg-green-50 text-green-700 hover:bg-green-100 transition font-medium flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -372,6 +374,88 @@
         </table>
       </div>
     </section>
+    <!-- Form 4 · Kế hoạch công việc -->
+    <section id="form4" class="form-section w-full max-w-none bg-white p-8 rounded-lg shadow-md hidden">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-3xl font-extrabold text-primary-blue tracking-wide mb-1">Bảng kế hoạch</h2>
+          <div class="h-1 w-16 bg-primary-blue mb-2 rounded"></div>
+          <p class="text-base text-gray-500">Theo dõi phân bổ công việc và tiến độ thực hiện theo từng nhân sự.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <select
+            id="f4-assigneeFilter"
+            class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+          >
+            <option value="all">Tất cả nhân sự</option>
+          </select>
+          <button
+            id="f4-reloadButton"
+            class="inline-flex items-center gap-2 rounded-lg bg-primary-blue px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-600 transition"
+            type="button"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Tải lại
+          </button>
+          <p id="f4-statusText" class="text-xs text-gray-500"></p>
+        </div>
+      </div>
+
+      <div class="flex h-[calc(100vh-260px)] overflow-hidden border border-gray-200 rounded-lg">
+        <!-- Danh sách công việc -->
+        <aside class="w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+          <div class="p-4 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-semibold text-gray-700 uppercase">Danh sách công việc</h3>
+              <span id="f4-recordCounter" class="text-xs text-gray-500"></span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto">
+            <div id="f4-taskList" class="p-2">
+            </div>
+          </div>
+        </aside>
+
+        <!-- Gantt chart -->
+        <section class="flex-1 flex flex-col overflow-hidden bg-white">
+          <div class="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-700 uppercase">Timeline (Gantt Chart)</h3>
+            <div id="f4-legend" class="flex flex-wrap gap-2"></div>
+          </div>
+          <div class="flex-1 overflow-hidden">
+            <div id="f4-chartWrapper" class="relative w-full h-full p-4 overflow-auto">
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section id="f4-detailSection" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-96 overflow-auto">
+        <div class="p-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+          <h3 class="text-sm font-semibold text-gray-700 uppercase">Chi tiết phân bổ công việc</h3>
+          <button id="f4-closeDetailBtn" class="text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="overflow-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr class="text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
+                <th class="px-4 py-3">STT</th>
+                <th class="px-4 py-3">Người phụ trách</th>
+                <th class="px-4 py-3">Bắt đầu</th>
+                <th class="px-4 py-3">Hoàn thành</th>
+                <th class="px-4 py-3 text-right">Giờ công</th>
+              </tr>
+            </thead>
+            <tbody id="f4-scheduleTable" class="divide-y divide-gray-100 bg-white text-sm"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
     <!-- User Guide -->
     <section id="userGuide" class="form-section w-full max-w-5xl bg-white p-8 rounded-lg shadow-md hidden">
       <div class="mb-6 flex items-center justify-between">
@@ -528,15 +612,21 @@
     // Sidebar navigation logic
     const navBtns = document.querySelectorAll('.nav-btn');
     const formSections = document.querySelectorAll('.form-section');
+    let form4Initialized = false;
+    let form4Reload = null;
     function showSection(id) {
       formSections.forEach(sec => sec.classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
     }
     navBtns.forEach(btn => {
       btn.onclick = () => {
+        const target = btn.getAttribute('data-target');
         navBtns.forEach(b => b.classList.remove('bg-primary-blue', 'font-bold'));
         btn.classList.add('bg-primary-blue', 'font-bold');
-        showSection(btn.getAttribute('data-target'));
+        showSection(target);
+        if (target === 'form4') {
+          initForm4();
+        }
       };
     });
     // Show first form by default
@@ -2056,231 +2146,485 @@
     setRequestCode();
     // internal forms moved to DQA_internal.html
 
-    // Task tracking table: fetch data from endpoint and render
-    (function(){
-      const TASK_TRACKING_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/4794bc52-4d4c-4326-b2cb-1b8388f20fb1";
-      let TT_CACHE_ROWS = [];
-
-      function getCaseInsensitive(obj, keys) {
-        if (!obj) return "";
-        const lower = Object.keys(obj).reduce((acc,k)=>{acc[k.toLowerCase()] = obj[k];return acc;},{});
-        for (const key of keys) {
-          if (lower[key.toLowerCase()] !== undefined) return lower[key.toLowerCase()];
+    function initForm4() {
+      if (form4Initialized) {
+        if (typeof form4Reload === 'function') {
+          form4Reload();
         }
-        return "";
+        return;
+      }
+      form4Initialized = true;
+
+      const statusText = document.getElementById('f4-statusText');
+      const assigneeFilter = document.getElementById('f4-assigneeFilter');
+      const tableBody = document.getElementById('f4-scheduleTable');
+      const recordCounter = document.getElementById('f4-recordCounter');
+      const legendContainer = document.getElementById('f4-legend');
+      const chartWrapper = document.getElementById('f4-chartWrapper');
+      const taskList = document.getElementById('f4-taskList');
+      const detailSection = document.getElementById('f4-detailSection');
+      const closeDetailBtn = document.getElementById('f4-closeDetailBtn');
+      const reloadButton = document.getElementById('f4-reloadButton');
+
+      const palette = [
+        '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1'
+      ];
+      const colorCache = new Map();
+      const expandedAssignees = new Set();
+
+      const WORKING_DAYS = [1, 2, 3, 4, 5, 6];
+      const DAY_START = 8 * 60;
+      const LUNCH_START = 12 * 60 + 30;
+      const LUNCH_END = 13 * 60 + 30;
+      const DAY_END = 17 * 60;
+      const MORNING_MINUTES = LUNCH_START - DAY_START;
+      const AFTERNOON_MINUTES = DAY_END - LUNCH_END;
+      const WORKDAY_MINUTES = MORNING_MINUTES + AFTERNOON_MINUTES;
+      const TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
+      const { DateTime } = luxon || {};
+      if (!DateTime) {
+        console.error('Luxon chưa sẵn sàng cho Form 4');
+        if (statusText) statusText.textContent = 'Lỗi: Luxon chưa được tải.';
+        return;
       }
 
-      function renderStatusBadge(status) {
-        const s = (status || "").toString().toLowerCase();
-        if (s.includes("done") || s.includes("hoàn")) return '<span class="rounded px-2 py-1 bg-green-100 text-green-800">Hoàn thành</span>';
-        if (s.includes("chờ phê duyệt") || s.includes("cho phe duyet")) return '<span class="rounded px-2 py-1 bg-orange-100 text-orange-800">Chờ phê duyệt</span>';
-        if (s.includes("chờ phân công") || s.includes("cho phan cong")) return '<span class="rounded px-2 py-1 bg-blue-100 text-blue-800">Chờ phân công</span>';
-        if (s.includes("progress") || s.includes("đang")) return '<span class="rounded px-2 py-1 bg-yellow-100 text-yellow-800">Đang thực hiện</span>';
-        if (s.includes("pending") || s.includes("chờ")) return '<span class="rounded px-2 py-1 bg-gray-100 text-gray-800">Chờ xử lý</span>';
-        return `<span class="rounded px-2 py-1 bg-gray-100 text-gray-800">${status || "-"}</span>`;
-      }
+      let scheduleRows = [];
+      let timelineSegments = [];
 
-      function toDDMMYYYY(value){
-        if(!value) return '';
-        // Accept formats like ISO, YYYY-MM-DD, or already DD/MM/YYYY
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return value;
-        const d = new Date(value);
-        if (isNaN(d.getTime())) return value; // fallback to original if invalid
-        const dd = String(d.getDate()).padStart(2,'0');
-        const mm = String(d.getMonth()+1).padStart(2,'0');
-        const yyyy = d.getFullYear();
-        return `${dd}/${mm}/${yyyy}`;
-      }
-
-      function formatYYYYMM(val){
-        try{ const d = new Date(val); if (isNaN(d)) return ''; const mm = String(d.getMonth()+1).padStart(2,'0'); return `${d.getFullYear()}-${mm}`; }catch(_){ return ''; }
-      }
-
-      function applyTaskMonthFilter(){
-        const monthEl = document.getElementById('tt-month');
-        const mval = monthEl ? (monthEl.value||'').trim() : '';
-        const bodyEl = document.getElementById('trackingTableBody');
-        if (!Array.isArray(TT_CACHE_ROWS) || TT_CACHE_ROWS.length===0){
-          bodyEl.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>';
-          return;
+      function getColor(name) {
+        if (!colorCache.has(name)) {
+          colorCache.set(name, palette[colorCache.size % palette.length]);
         }
-        let rows = TT_CACHE_ROWS.slice();
-        if (mval){ rows = rows.filter(r => r.monthTag === mval); }
-        if (!rows.length){ bodyEl.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Không có dữ liệu</td></tr>'; return; }
-        const html = rows.map(r=> r.html).join('');
-        bodyEl.innerHTML = html;
+        return colorCache.get(name);
       }
 
-      (function initTTMonth(){
-        const el = document.getElementById('tt-month');
-        const off = document.getElementById('tt-filter-off');
-        if (!el) return;
-        const d = new Date();
-        const yy = d.getFullYear();
-        const mm = String(d.getMonth()+1).padStart(2,'0');
-        if (!el.value) el.value = `${yy}-${mm}`;
-        if (!el._bound){ el.addEventListener('change', ()=> applyTaskMonthFilter()); el._bound = true; }
-        if (off && !off._bound){
-          off.addEventListener('click', ()=>{
-            try{
-              el.value = '';
-              // Render tất cả hàng từ cache
-              const bodyEl = document.getElementById('trackingTableBody');
-              if (Array.isArray(TT_CACHE_ROWS) && TT_CACHE_ROWS.length){
-                bodyEl.innerHTML = TT_CACHE_ROWS.map(r=> r.html).join('');
-              }
-            }catch(_){ }
+      function parseDate(value) {
+        if (!value) return null;
+        if (value instanceof Date) return DateTime.fromJSDate(value, { zone: TIME_ZONE });
+        if (typeof value === 'string') {
+          const normalised = value.includes('T') ? value : value.replace(' ', 'T');
+          const iso = DateTime.fromISO(normalised, { zone: TIME_ZONE });
+          if (iso.isValid) return iso;
+          const fallback = DateTime.fromFormat(value, 'dd/MM/yyyy HH:mm', { zone: TIME_ZONE });
+          return fallback.isValid ? fallback : null;
+        }
+        return null;
+      }
+
+      function ensureWorkingStart(dt) {
+        let pointer = dt.set({ second: 0, millisecond: 0 });
+        while (true) {
+          if (!WORKING_DAYS.includes(pointer.weekday)) {
+            pointer = pointer.plus({ days: 1 }).startOf('day').set({ hour: 8, minute: 0 });
+            continue;
+          }
+          const minutes = pointer.hour * 60 + pointer.minute;
+          if (minutes < DAY_START) {
+            pointer = pointer.set({ hour: 8, minute: 0 });
+            continue;
+          }
+          if (minutes >= LUNCH_START && minutes < LUNCH_END) {
+            pointer = pointer.set({ hour: 13, minute: 30 });
+            continue;
+          }
+          if (minutes >= DAY_END) {
+            pointer = pointer.plus({ days: 1 }).startOf('day').set({ hour: 8, minute: 0 });
+            continue;
+          }
+          return pointer;
+        }
+      }
+
+      function addWorkingHours(start, hours) {
+        let remaining = hours * 60;
+        let current = ensureWorkingStart(start);
+        while (remaining > 0) {
+          const minutes = current.hour * 60 + current.minute;
+          let blockEnd = minutes < LUNCH_START ? LUNCH_START : DAY_END;
+          if (minutes >= LUNCH_START && minutes < LUNCH_END) {
+            current = current.set({ hour: 13, minute: 30 });
+            continue;
+          }
+          const usable = blockEnd - minutes;
+          if (usable >= remaining) {
+            current = current.plus({ minutes: remaining });
+            remaining = 0;
+          } else {
+            current = current.plus({ minutes: usable });
+            remaining -= usable;
+            if (blockEnd === LUNCH_START) {
+              current = current.set({ hour: 13, minute: 30 });
+            } else {
+              current = current.plus({ days: 1 }).set({ hour: 8, minute: 0 });
+            }
+          }
+          current = ensureWorkingStart(current);
+        }
+        return current;
+      }
+
+      function buildSchedule(data) {
+        const grouped = new Map();
+        data.forEach((task, index) => {
+          const assignee = String(task.assignee || 'Khác').trim();
+          if (!grouped.has(assignee)) grouped.set(assignee, []);
+          grouped.get(assignee).push({ ...task, __idx: index });
+        });
+        grouped.forEach(list => {
+          list.sort((a, b) => {
+            const sa = parseDate(a.start_time);
+            const sb = parseDate(b.start_time);
+            if (!sa && !sb) return 0;
+            if (!sa) return 1;
+            if (!sb) return -1;
+            return sa.toMillis() - sb.toMillis();
           });
-          off._bound = true;
-        }
-      })();
+        });
 
-      document.getElementById('taskTrackingForm').onsubmit = async function(e){
-      e.preventDefault();
-        
-        // Validation: At least one of email or department must be filled
-        const email = this.querySelector('input[name="senderEmail"]').value.trim();
-        const department = this.querySelector('select[name="department"]').value.trim();
-        
-        if (!email && !department) {
-          alert('Vui lòng nhập ít nhất một trong hai trường: Email hoặc Phòng ban');
+        const rows = [];
+        const segments = [];
+        let order = 1;
+
+        grouped.forEach((tasks, assignee) => {
+          let cursor = null;
+          tasks.forEach(task => {
+            const startRaw = parseDate(task.start_time);
+            const points = parseFloat(task.work_points || task.points || task.hours || task.man_hour || task.manHour || 0);
+            if (!startRaw || !isFinite(points) || points <= 0) return;
+            let start = cursor && cursor > startRaw ? cursor : startRaw;
+            start = ensureWorkingStart(start);
+            const providedEnd = parseDate(task.end_time);
+            const end = providedEnd && providedEnd > start ? providedEnd : addWorkingHours(start, points);
+            cursor = end;
+
+            rows.push({
+              order,
+              assignee,
+              start,
+              end,
+              points,
+              taskName: task.task_name || task.task_code || `Task #${order}`
+            });
+
+            segments.push({
+              order,
+              assignee,
+              start,
+              end,
+              points,
+              taskName: task.task_name || task.task_code || `Task #${order}`
+            });
+
+            order += 1;
+          });
+        });
+
+        rows.sort((a, b) => a.order - b.order);
+        segments.sort((a, b) => a.order - b.order);
+        return { rows, segments };
+      }
+
+      function populateFilterOptions(rows) {
+        if (!assigneeFilter) return;
+        const names = Array.from(new Set(rows.map(row => row.assignee)));
+        assigneeFilter.innerHTML = '<option value="all">Tất cả nhân sự</option>';
+        names.forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          assigneeFilter.appendChild(option);
+          expandedAssignees.add(name);
+        });
+      }
+
+      function formatDate(dt) {
+        return dt ? dt.toFormat('dd/MM HH:mm') : '';
+      }
+
+      function renderTaskList(rows, filter) {
+        if (!taskList) return;
+        const filtered = filter === 'all' ? rows : rows.filter(row => row.assignee === filter);
+        if (!filtered.length) {
+          taskList.innerHTML = '<div class="text-sm text-gray-500 px-4 py-6 text-center">Không có dữ liệu</div>';
+          recordCounter.textContent = '0 tác vụ';
           return;
         }
-        
-        const btn = document.getElementById('taskTrackingSearchBtn') || this.querySelector("button[type=submit]");
-        const originalSearchLabel = btn ? btn.textContent : "Tìm kiếm";
-        if (btn) {
-          btn.disabled = true;
-          btn.innerHTML = "<span class='spinner'></span><span class='ml-2'>Đang tìm...</span>";
-        }
-        const bodyEl = document.getElementById('trackingTableBody');
-        bodyEl.innerHTML = "<tr><td colspan='7' class='px-4 py-4 text-center text-gray-500'><span class='spinner mr-2'></span>Đang tải...</td></tr>";
 
-        // Build filter from form
-        const formData = new FormData(this);
-        const filter = {};
-        formData.forEach((v,k)=>{ filter[k] = v; });
-        // Build response field mapping from form (allow backend to choose keys; also used client-side)
-          const map = {
-          submissionDate: filter.resp_ngay_gui || 'submissionDate',
-          taskName: filter.resp_ten_cong_viec || 'taskName',
-          desiredDueDate: filter.resp_han_mong_muon || 'desiredDueDate',
-          completionDate: filter.resp_ngay_hoan_thanh || 'completionDate',
-          pic: filter.resp_phu_trach || 'pic',
-          status: filter.resp_trang_thai || 'status',
-          assigner: filter.resp_nguoi_giao_viec || 'assigner',
-            reportCode: filter.resp_ma_bao_cao || 'reportCode',
+        const grouped = new Map();
+        filtered.forEach(row => {
+          if (!grouped.has(row.assignee)) grouped.set(row.assignee, []);
+          grouped.get(row.assignee).push(row);
+        });
+
+        taskList.innerHTML = '';
+        grouped.forEach((list, assignee) => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'mb-1';
+
+          const header = document.createElement('div');
+          const expanded = expandedAssignees.has(assignee);
+          header.className = 'flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 cursor-pointer rounded transition';
+          header.innerHTML = `
+            <div class="flex items-center gap-2 flex-1">
+              <svg class="w-4 h-4 text-gray-500 transition-transform ${expanded ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+              <span class="h-3 w-3 rounded-full" style="background-color:${getColor(assignee)}"></span>
+              <span class="text-sm font-semibold text-gray-700">${assignee}</span>
+              <span class="text-xs text-gray-500">(${list.length})</span>
+            </div>
+          `;
+          header.addEventListener('click', () => {
+            if (expandedAssignees.has(assignee)) expandedAssignees.delete(assignee);
+            else expandedAssignees.add(assignee);
+            renderTaskList(rows, filter);
+          });
+          wrapper.appendChild(header);
+
+          if (expanded) {
+            const body = document.createElement('div');
+            body.className = 'bg-white';
+            list.forEach(item => {
+              const row = document.createElement('div');
+              row.className = 'px-6 py-2 border-b border-gray-100 hover:bg-blue-50 transition text-sm';
+              row.innerHTML = `
+                <div class="font-medium text-gray-800">${item.taskName}</div>
+                <div class="text-xs text-gray-500 mt-1">${formatDate(item.start)} → ${formatDate(item.end)} · ${item.points.toFixed(1)}h</div>
+              `;
+              body.appendChild(row);
+            });
+            wrapper.appendChild(body);
+          }
+
+          taskList.appendChild(wrapper);
+        });
+
+        recordCounter.textContent = `${filtered.length} tác vụ`;
+      }
+
+      function renderTable(rows, filter) {
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+        const filtered = filter === 'all' ? rows : rows.filter(row => row.assignee === filter);
+        if (!filtered.length) {
+          tableBody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Không có dữ liệu</td></tr>';
+          return;
+        }
+        filtered.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-blue-50 transition';
+          tr.innerHTML = `
+            <td class="px-4 py-3 font-semibold text-blue-600">${row.order}</td>
+            <td class="px-4 py-3">${row.assignee}</td>
+            <td class="px-4 py-3">${formatDate(row.start)}</td>
+            <td class="px-4 py-3">${formatDate(row.end)}</td>
+            <td class="px-4 py-3 text-right font-semibold text-slate-700">${row.points.toFixed(2)}h</td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      }
+
+      function buildDateRange(segments) {
+        if (!segments.length) return [];
+        let min = segments[0].start.startOf('day');
+        let max = segments[0].end.startOf('day');
+        segments.forEach(seg => {
+          if (seg.start < min) min = seg.start.startOf('day');
+          if (seg.end > max) max = seg.end.startOf('day');
+        });
+        const days = [];
+        let pointer = min;
+        while (pointer <= max) {
+          days.push(pointer);
+          pointer = pointer.plus({ days: 1 });
+        }
+        return days;
+      }
+
+      function getSegmentPosition(segment, dateRange) {
+        const firstDay = dateRange[0];
+        const startIndex = Math.floor(segment.start.startOf('day').diff(firstDay, 'days').days);
+        const endIndex = Math.floor(segment.end.startOf('day').diff(firstDay, 'days').days);
+
+        const normalize = (minutes) => {
+          if (minutes <= LUNCH_START) return minutes - DAY_START;
+          if (minutes >= LUNCH_END) return MORNING_MINUTES + (minutes - LUNCH_END);
+          return MORNING_MINUTES;
         };
 
-        try {
-          // Use GET with query params per webhook requirement
-          const params = new URLSearchParams();
-          
-          // Add form fields to query params (excluding response mapping fields)
-          Object.keys(filter).forEach(k=>{
-            if (filter[k] !== undefined && filter[k] !== null) {
-              if (!k.startsWith('resp_')) {
-                // Map form field names to backend field names
-                const fieldMapping = {
-                  'senderEmail': 'requester_email',
-                  'department': 'requester_department'
-                };
-                const paramName = fieldMapping[k] || k;
-                params.append(paramName, filter[k]);
-              }
-            }
-          });
-          
-          // send response mapping using safe param names
-          const mappingParamMap = {
-            resp_ngay_gui: 'field_submission_date',
-            resp_ten_cong_viec: 'field_task_name',
-            resp_han_mong_muon: 'field_desired_due_date',
-            resp_ngay_hoan_thanh: 'field_completion_date',
-            resp_phu_trach: 'field_pic',
-            resp_trang_thai: 'field_status',
-            resp_nguoi_giao_viec: 'field_assigner',
-            resp_ma_bao_cao: 'field_report_code'
-          };
-          Object.keys(mappingParamMap).forEach(src=>{
-            if (filter[src]) params.append(mappingParamMap[src], filter[src]);
-          });
-          params.append('_ts', Date.now().toString());
-          let url = `${TASK_TRACKING_ENDPOINT}?${params.toString()}`;
+        let startMinutes = segment.start.hour * 60 + segment.start.minute;
+        let endMinutes = segment.end.hour * 60 + segment.end.minute;
+        startMinutes = Math.min(Math.max(startMinutes, DAY_START), DAY_END);
+        endMinutes = Math.min(Math.max(endMinutes, DAY_START), DAY_END);
 
-          let resp = await fetch(url, { method: 'GET' });
+        const startOffset = normalize(startMinutes);
+        const endOffset = normalize(endMinutes);
+        const dayWidth = 100 / dateRange.length;
+        const left = startIndex * dayWidth + (startOffset / WORKDAY_MINUTES) * dayWidth;
+        const right = endIndex * dayWidth + (endOffset / WORKDAY_MINUTES) * dayWidth;
+        return { left: Math.max(0, left), width: Math.max(0.8, right - left) };
+      }
 
-          if (!resp.ok) {
-            const errText = await resp.text();
-            throw new Error(errText);
-          }
-          let json = null;
-          let ct = resp.headers.get('content-type') || '';
-          if (ct.includes('application/json')) json = await resp.json();
-          else {
-            try { json = JSON.parse(await resp.text()); } catch { json = {}; }
-          }
-
-          const rows = Array.isArray(json) ? json
-                     : Array.isArray(json?.data) ? json.data
-                     : Array.isArray(json?.rows) ? json.rows
-                     : [];
-
-          if (!rows.length) {
-            bodyEl.innerHTML = "<tr><td colspan='7' class='px-4 py-6 text-center text-gray-500'>Không có dữ liệu</td></tr>";
-          } else {
-            // Sort rows: empty status first, then doing/progress/đang, then others
-            function statusWeight(raw){
-              const s = (raw || "").toString().toLowerCase().trim();
-              if (!s) return 0; // empty first
-              if (s.includes('doing') || s.includes('progress') || s.includes('đang')) return 1; // doing second
-              return 2; // others last
-            }
-            function getRawStatus(rec){
-              return getCaseInsensitive(rec, [map.status,'status','trangThai']);
-            }
-            const rowsSorted = rows.slice().sort((a,b)=>{
-              const wa = statusWeight(getRawStatus(a));
-              const wb = statusWeight(getRawStatus(b));
-              if (wa !== wb) return wa - wb;
-              return 0;
-            });
-            TT_CACHE_ROWS = [];
-            const html = rowsSorted.map(r=>{
-              const assigner = getCaseInsensitive(r, [map.assigner,'assigner','nguoiGiaoViec','assignedTo']) || '-';
-              const submissionDate = toDDMMYYYY(getCaseInsensitive(r, [map.submissionDate,'ngayGui','createdAt','created_at'])) || '-';
-              const taskName = getCaseInsensitive(r, [map.taskName,'tenCongViec','name','title']) || '-';
-              const desiredDue = toDDMMYYYY(getCaseInsensitive(r, [map.desiredDueDate,'hanMongMuon','dueDate','due_date'])) || '-';
-              const doneDate = toDDMMYYYY(getCaseInsensitive(r, [map.completionDate,'ngayHoanThanh','completedAt','completed_at'])) || '-';
-              const reportCode = getCaseInsensitive(r, [map.reportCode,'reportCode','maBaoCao','report_code']) || '-';
-              const pic = getCaseInsensitive(r, [map.pic,'phuTrach','owner','assignee']) || '-';
-              const status = getCaseInsensitive(r, [map.status,'trangThai']) || '';
-              const monthTag = formatYYYYMM(getCaseInsensitive(r, [map.submissionDate,'ngayGui','createdAt','created_at']));
-              const rowHtml = `
-                <tr>
-                  <td class="px-4 py-2">${assigner}</td>
-                  <td class="px-4 py-2">${submissionDate}</td>
-                  <td class="px-4 py-2">${desiredDue}</td>
-                  <td class="px-4 py-2">${doneDate}</td>
-                  <td class="px-4 py-2">${taskName}</td>
-                  <td class="px-4 py-2">${pic}</td>
-                  <td class="px-4 py-2">${renderStatusBadge(status)}</td>
-                  <td class="px-4 py-2">${reportCode}</td>
-                </tr>`;
-              TT_CACHE_ROWS.push({ html: rowHtml, monthTag });
-              return rowHtml;
-            }).join('');
-            bodyEl.innerHTML = html;
-            try { applyTaskMonthFilter(); } catch(_){ }
-          }
-        } catch (err) {
-          bodyEl.innerHTML = `<tr><td colspan='7' class='px-4 py-6 text-center text-red-600'>Lỗi khi tải dữ liệu: ${String(err.message || err)}</td></tr>`;
-        } finally {
-          if (btn) { btn.disabled = false; btn.textContent = originalSearchLabel || 'Tìm kiếm'; }
+      function renderTimeline(segments, filter) {
+        if (!chartWrapper) return;
+        const filtered = filter === 'all' ? segments : segments.filter(seg => seg.assignee === filter);
+        if (!filtered.length) {
+          chartWrapper.innerHTML = '<div class="flex items-center justify-center h-full text-sm text-gray-500">Không có dữ liệu để hiển thị timeline.</div>';
+          legendContainer.innerHTML = '';
+          return;
         }
-      };
-    })();
 
+        const dateRange = buildDateRange(filtered);
+        const assignees = Array.from(new Set(filtered.map(seg => seg.assignee)));
+        chartWrapper.style.height = `${Math.max(320, assignees.length * 90 + 120)}px`;
+
+        legendContainer.innerHTML = assignees.map(name => `
+          <span class="flex items-center gap-2 rounded-lg bg-white border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm">
+            <span class="h-3 w-3 rounded-full" style="background-color:${getColor(name)}"></span>${name}
+          </span>
+        `).join('');
+
+        const now = DateTime.now().setZone(TIME_ZONE);
+        let currentIndicator = '';
+        if (now >= dateRange[0].startOf('day') && now <= dateRange[dateRange.length - 1].endOf('day')) {
+          const normalize = (minutes) => {
+            if (minutes <= LUNCH_START) return minutes - DAY_START;
+            if (minutes >= LUNCH_END) return MORNING_MINUTES + (minutes - LUNCH_END);
+            return MORNING_MINUTES;
+          };
+          let minutes = now.hour * 60 + now.minute;
+          minutes = Math.min(Math.max(minutes, DAY_START), DAY_END);
+          const dayIndex = Math.floor(now.startOf('day').diff(dateRange[0], 'days').days);
+          const dayWidth = 100 / dateRange.length;
+          const offset = dayIndex * dayWidth + (normalize(minutes) / WORKDAY_MINUTES) * dayWidth;
+          currentIndicator = `
+            <div class="absolute top-0 bottom-0 z-30 pointer-events-none" style="left:${offset}%; width:2px; background-color:#ef4444;">
+              <span class="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-semibold rounded shadow">${now.toFormat('HH:mm')}</span>
+            </div>
+          `;
+        }
+
+        const header = dateRange.map(day => `
+          <div class="flex-1 text-center border-l border-gray-200 px-1">
+            <div class="text-sm font-semibold text-gray-800">${day.toFormat('ccc')}</div>
+            <div class="text-xs text-gray-500">${day.toFormat('dd/MM')}</div>
+          </div>
+        `).join('');
+
+        const rowsHtml = assignees.map(name => {
+          const segs = filtered.filter(seg => seg.assignee === name);
+          const color = getColor(name);
+          const total = segs.reduce((sum, seg) => sum + seg.points, 0);
+          const bars = segs.map(seg => {
+            const pos = getSegmentPosition(seg, dateRange);
+            return `
+              <div class="absolute top-2 h-8 rounded flex items-center px-2 text-xs font-semibold text-white shadow-sm"
+                   style="left:${pos.left}%; width:${pos.width}%; background-color:${color};"
+                   title="${seg.taskName} · ${formatDate(seg.start)} → ${formatDate(seg.end)} (${seg.points.toFixed(1)}h)">
+                <span class="truncate">${seg.taskName}</span>
+              </div>
+            `;
+          }).join('');
+          return `
+            <div class="flex items-center mb-4 min-h-[64px] border-b border-gray-100 pb-4">
+              <div class="w-48 flex-shrink-0 pr-5">
+                <div class="text-base font-semibold text-gray-800 mb-1">${name}</div>
+                <div class="text-xs text-gray-500">${segs.length} tác vụ · ${total.toFixed(1)}h</div>
+              </div>
+              <div class="flex-1 relative rounded-lg bg-gray-50 border border-gray-200 overflow-hidden min-h-[52px]">
+                ${bars}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        chartWrapper.innerHTML = `
+          <div class="w-full h-full">
+            <div class="flex border-b border-gray-200 mb-5 pb-3 sticky top-0 bg-white z-10 relative">
+              <div class="w-48 flex-shrink-0 pr-5">
+                <h3 class="text-lg font-semibold text-gray-800">Nhân viên</h3>
+              </div>
+              <div class="flex-1 flex relative min-w-[${dateRange.length * 120}px]">
+                ${header}
+                ${currentIndicator}
+              </div>
+            </div>
+            <div>${rowsHtml}</div>
+            <div class="flex mt-4 pt-3 border-t border-gray-200">
+              <div class="w-48 flex-shrink-0 pr-5">
+                <div class="text-xs text-gray-500">Khung thời gian</div>
+              </div>
+              <div class="flex-1 flex justify-between text-xs text-gray-500 min-w-[${dateRange.length * 120}px] px-1">
+                <span>08:00</span>
+                <span>12:30</span>
+                <span>13:30</span>
+                <span>17:00</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function refreshView() {
+        const filter = assigneeFilter ? assigneeFilter.value : 'all';
+        renderTaskList(scheduleRows, filter);
+        renderTable(scheduleRows, filter);
+        renderTimeline(timelineSegments, filter);
+      }
+
+      async function loadData() {
+        if (statusText) statusText.textContent = 'Đang tải dữ liệu...';
+        try {
+          const resp = await fetch('https://iatzhxxuk.tino.page/webhook/9eaaaf3b-3f97-469f-a8ab-d9dc473abfc1');
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const raw = await resp.json();
+          let flattened = [];
+          if (Array.isArray(raw)) {
+            raw.forEach(item => {
+              if (item && Array.isArray(item.tasks)) {
+                item.tasks.forEach(task => {
+                  flattened.push({
+                    assignee: task.assignee || item.assignee,
+                    task_code: task.task_code || '',
+                    task_name: task.task_name || '',
+                    start_time: task.start_time || '',
+                    end_time: task.end_time || '',
+                    points: task.work_points || task.points || task.hours || 0
+                  });
+                });
+              } else {
+                flattened.push(item);
+              }
+            });
+          } else if (Array.isArray(raw?.data)) {
+            flattened = raw.data;
+          }
+
+          const { rows, segments } = buildSchedule(flattened);
+          scheduleRows = rows;
+          timelineSegments = segments;
+          populateFilterOptions(rows);
+          if (assigneeFilter) assigneeFilter.value = 'all';
+          refreshView();
+          if (statusText) statusText.textContent = `Đã tải ${flattened.length} tác vụ`;
+        } catch (err) {
+          console.error('Lỗi tải Form 4:', err);
+          if (statusText) statusText.textContent = `Lỗi: ${err.message || err}`;
+        }
+      }
+
+      if (reloadButton) reloadButton.addEventListener('click', loadData);
+      if (assigneeFilter) assigneeFilter.addEventListener('change', refreshView);
+      if (closeDetailBtn && detailSection) {
+        closeDetailBtn.addEventListener('click', () => detailSection.classList.add('hidden'));
+      }
+
+      form4Reload = loadData;
+      loadData();
+    }
+
+    // Task tracking table: fetch data from endpoint and render
   </script>
 </body>
 </html>
