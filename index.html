@@ -606,8 +606,6 @@
     const FILE_UPLOAD_ENDPOINT = FORM_SUBMIT_ENDPOINT;
     const FEEDBACK_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/21a9aa69-4434-47e1-97fc-b7fb84adb43e";
     const FEEDBACK_LIST_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/925155db-ed53-4a3a-bd4d-1ba8378a545c";
-    // Endpoint for Form 4 (Bảng kế hoạch)
-    const SCHEDULE_DATA_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/Laydulieubangphancong1";
     // Endpoint for Task Tracking - sử dụng webhook để tránh CORS
     // Webhook này sẽ proxy request đến API với token
     const TASK_TRACKING_WEBHOOK = "https://iatzhxxuk.tino.page/webhook/TaskTracking"; // Cần tạo webhook mới
@@ -2163,6 +2161,24 @@
       }
       form4Initialized = true;
 
+      // ===== FORM 4: Kế hoạch công việc (Dashboard Gantt Chart) =====
+      const ZONE = 'Asia/Ho_Chi_Minh';
+      const WORKING_BLOCKS = [
+        { start: { hour: 8, minute: 0 }, end: { hour: 12, minute: 30 } },
+        { start: { hour: 13, minute: 30 }, end: { hour: 17, minute: 0 } },
+      ];
+      const WORKING_DAYS = [1, 2, 3, 4, 5, 6]; // Monday - Saturday
+      const palette = [
+        '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1',
+      ];
+      const { DateTime } = luxon;
+      if (!DateTime) {
+        console.error('Luxon is not loaded');
+        const statusText = document.getElementById('f4-statusText');
+        if (statusText) statusText.textContent = 'Lỗi: Luxon chưa được tải.';
+        return;
+      }
+
       const statusText = document.getElementById('f4-statusText');
       const assigneeFilter = document.getElementById('f4-assigneeFilter');
       const tableBody = document.getElementById('f4-scheduleTable');
@@ -2174,473 +2190,1159 @@
       const closeDetailBtn = document.getElementById('f4-closeDetailBtn');
       const reloadButton = document.getElementById('f4-reloadButton');
 
-      const palette = [
-        '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1'
-      ];
+      let rawData = [];
+      let scheduleRows = [];
+      let segments = [];
+      let subBars = []; // Dữ liệu thanh phụ
       const colorCache = new Map();
-      const expandedAssignees = new Set();
+      const expandedCategories = new Set();
+      
+      // URL webhook cho thanh phụ (webhook riêng)
+      const SUBBARS_WEBHOOK_URL = 'https://iatzhxxuk.tino.page/webhook/thanhphuform4DB';
 
-      const WORKING_DAYS = [1, 2, 3, 4, 5, 6];
-      const DAY_START = 8 * 60;
-      const LUNCH_START = 12 * 60 + 30;
-      const LUNCH_END = 13 * 60 + 30;
-      const DAY_END = 17 * 60;
-      const MORNING_MINUTES = LUNCH_START - DAY_START;
-      const AFTERNOON_MINUTES = DAY_END - LUNCH_END;
-      const WORKDAY_MINUTES = MORNING_MINUTES + AFTERNOON_MINUTES;
-      const TIME_ZONE = 'Asia/Ho_Chi_Minh';
+      const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
+        timeZone: ZONE,
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+      });
+      const timeFormatter = new Intl.DateTimeFormat('vi-VN', {
+        timeZone: ZONE,
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 
-      const { DateTime } = luxon || {};
-      if (!DateTime) {
-        console.error('Luxon chưa sẵn sàng cho Form 4');
-        if (statusText) statusText.textContent = 'Lỗi: Luxon chưa được tải.';
-        return;
+      function parseDateInput(value) {
+        if (!value) return null;
+        if (value instanceof Date) {
+          return DateTime.fromJSDate(value, { zone: ZONE });
+        }
+        if (typeof value === 'string') {
+          // Parse format "dd/MM/yyyy HH:mm" (dùng cho thanh phụ)
+          const ddmmyyyyMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
+          if (ddmmyyyyMatch) {
+            const [, day, month, year, hour, minute] = ddmmyyyyMatch;
+            return DateTime.fromObject({
+              year: parseInt(year),
+              month: parseInt(month),
+              day: parseInt(day),
+              hour: parseInt(hour),
+              minute: parseInt(minute),
+            }, { zone: ZONE });
+          }
+          const normalised = value.includes('T') ? value : value.replace(' ', 'T');
+          return DateTime.fromISO(normalised, { zone: ZONE });
+        }
+        return DateTime.fromISO(String(value), { zone: ZONE });
       }
 
-      let scheduleRows = [];
-      let timelineSegments = [];
+      function formatDateTime(dt) {
+        if (!dt) return '';
+        const dateText = dateFormatter.format(dt.toJSDate());
+        const timeText = timeFormatter.format(dt.toJSDate());
+        return `${dateText} ${timeText}`;
+      }
 
-      // Danh sách người được phép hiển thị trên map (timeline)
-      const ALLOWED_MAP_ASSIGNEES = new Set([
-        'Lê Ngọc Ánh',
-        'Vũ Thị Thanh Hiền',
-        'Lê Thị Thảo',
-        'Lê Văn Sơn',
-        'Phạm Thị Minh',
-        'Đỗ Quang Long',
-        'Lại Quốc Lộc',
-        'Nguyễn Thị Hiền',
-        'Phạm Thành Trung Kiên'
-      ]);
-
-      function getColor(name) {
+      function getColorForAssignee(name) {
         if (!colorCache.has(name)) {
           colorCache.set(name, palette[colorCache.size % palette.length]);
         }
         return colorCache.get(name);
       }
 
-      function parseDate(value) {
-        if (!value) return null;
-        if (value instanceof Date) return DateTime.fromJSDate(value, { zone: TIME_ZONE });
-        if (typeof value === 'string') {
-          const normalised = value.includes('T') ? value : value.replace(' ', 'T');
-          const iso = DateTime.fromISO(normalised, { zone: TIME_ZONE });
-          if (iso.isValid) return iso;
-          const fallback = DateTime.fromFormat(value, 'dd/MM/yyyy HH:mm', { zone: TIME_ZONE });
-          return fallback.isValid ? fallback : null;
-        }
-        return null;
+      function isWorkingDay(dt) {
+        return WORKING_DAYS.includes(dt.weekday);
       }
 
-      function ensureWorkingStart(dt) {
+      function startOfBlock(dt, block) {
+        return dt.set({
+          hour: block.start.hour,
+          minute: block.start.minute,
+          second: 0,
+          millisecond: 0,
+        });
+      }
+
+      function endOfBlock(dt, block) {
+        return dt.set({
+          hour: block.end.hour,
+          minute: block.end.minute,
+          second: 0,
+          millisecond: 0,
+        });
+      }
+
+      function nextWorkingDayStart(dt) {
+        let probe = dt.plus({ days: 1 }).startOf('day');
+        while (!isWorkingDay(probe)) {
+          probe = probe.plus({ days: 1 });
+        }
+        return startOfBlock(probe, WORKING_BLOCKS[0]);
+      }
+
+      function alignToWorkingWindow(dt) {
         let pointer = dt.set({ second: 0, millisecond: 0 });
         while (true) {
-          if (!WORKING_DAYS.includes(pointer.weekday)) {
-            pointer = pointer.plus({ days: 1 }).startOf('day').set({ hour: 8, minute: 0 });
+          if (!isWorkingDay(pointer)) {
+            pointer = nextWorkingDayStart(pointer);
             continue;
           }
-          const minutes = pointer.hour * 60 + pointer.minute;
-          if (minutes < DAY_START) {
-            pointer = pointer.set({ hour: 8, minute: 0 });
+          const morningStart = startOfBlock(pointer, WORKING_BLOCKS[0]);
+          const morningEnd = endOfBlock(pointer, WORKING_BLOCKS[0]);
+          const afternoonStart = startOfBlock(pointer, WORKING_BLOCKS[1]);
+          const afternoonEnd = endOfBlock(pointer, WORKING_BLOCKS[1]);
+
+          if (pointer < morningStart) {
+            pointer = morningStart;
             continue;
           }
-          if (minutes >= LUNCH_START && minutes < LUNCH_END) {
-            pointer = pointer.set({ hour: 13, minute: 30 });
+          if (pointer < morningEnd) {
+            return pointer;
+          }
+          if (pointer < afternoonStart) {
+            pointer = afternoonStart;
             continue;
           }
-          if (minutes >= DAY_END) {
-            pointer = pointer.plus({ days: 1 }).startOf('day').set({ hour: 8, minute: 0 });
-            continue;
+          if (pointer < afternoonEnd) {
+            return pointer;
           }
-          return pointer;
+          pointer = nextWorkingDayStart(pointer);
         }
       }
 
-      function addWorkingHours(start, hours) {
-        let remaining = hours * 60;
-        let current = ensureWorkingStart(start);
-        while (remaining > 0) {
-          const minutes = current.hour * 60 + current.minute;
-          let blockEnd = minutes < LUNCH_START ? LUNCH_START : DAY_END;
-          if (minutes >= LUNCH_START && minutes < LUNCH_END) {
-            current = current.set({ hour: 13, minute: 30 });
+      function currentBlockEnd(dt) {
+        const morningStart = startOfBlock(dt, WORKING_BLOCKS[0]);
+        const morningEnd = endOfBlock(dt, WORKING_BLOCKS[0]);
+        const afternoonStart = startOfBlock(dt, WORKING_BLOCKS[1]);
+        const afternoonEnd = endOfBlock(dt, WORKING_BLOCKS[1]);
+
+        if (dt >= morningStart && dt < morningEnd) {
+          return morningEnd;
+        }
+        if (dt >= afternoonStart && dt < afternoonEnd) {
+          return afternoonEnd;
+        }
+        return alignToWorkingWindow(dt);
+      }
+
+      function calculateEndTime(startTime, points) {
+        let currentTime = startTime;
+        let remainingHours = points;
+        
+        const dayStartMinutes = 8 * 60;
+        const lunchStartMinutes = 12 * 60 + 30;
+        const lunchEndMinutes = 13 * 60 + 30;
+        const dayEndMinutes = 17 * 60;
+        
+        while (remainingHours > 0) {
+          const currentHour = currentTime.hour;
+          const currentMinute = currentTime.minute;
+          const currentTotalMinutes = currentHour * 60 + currentMinute;
+          
+          let workingStartMinutes, workingEndMinutes;
+          
+          if (currentTotalMinutes < dayStartMinutes) {
+            currentTime = currentTime.set({ hour: 8, minute: 0, second: 0, millisecond: 0 });
             continue;
-          }
-          const usable = blockEnd - minutes;
-          if (usable >= remaining) {
-            current = current.plus({ minutes: remaining });
-            remaining = 0;
+          } else if (currentTotalMinutes >= dayStartMinutes && currentTotalMinutes < lunchStartMinutes) {
+            workingStartMinutes = currentTotalMinutes;
+            workingEndMinutes = lunchStartMinutes;
+          } else if (currentTotalMinutes >= lunchStartMinutes && currentTotalMinutes < lunchEndMinutes) {
+            currentTime = currentTime.set({ hour: 13, minute: 30, second: 0, millisecond: 0 });
+            continue;
+          } else if (currentTotalMinutes >= lunchEndMinutes && currentTotalMinutes < dayEndMinutes) {
+            workingStartMinutes = currentTotalMinutes;
+            workingEndMinutes = dayEndMinutes;
           } else {
-            current = current.plus({ minutes: usable });
-            remaining -= usable;
-            if (blockEnd === LUNCH_START) {
-              current = current.set({ hour: 13, minute: 30 });
-            } else {
-              current = current.plus({ days: 1 }).set({ hour: 8, minute: 0 });
-            }
+            currentTime = currentTime.plus({ days: 1 }).set({ hour: 8, minute: 0, second: 0, millisecond: 0 });
+            continue;
           }
-          current = ensureWorkingStart(current);
+          
+          const availableMinutes = workingEndMinutes - workingStartMinutes;
+          const availableHours = availableMinutes / 60;
+          
+          if (remainingHours <= availableHours) {
+            const minutesToAdd = remainingHours * 60;
+            currentTime = currentTime.plus({ minutes: minutesToAdd });
+            remainingHours = 0;
+          } else {
+            remainingHours -= availableHours;
+            currentTime = currentTime.plus({ days: 1 }).set({ hour: 8, minute: 0, second: 0, millisecond: 0 });
+          }
         }
-        return current;
+        
+        return currentTime;
       }
 
-      function buildSchedule(data) {
-        const grouped = new Map();
-        data.forEach((task, index) => {
-          const assignee = String(task.assignee || 'Khác').trim();
-          if (!grouped.has(assignee)) grouped.set(assignee, []);
-          grouped.get(assignee).push({ ...task, __idx: index });
-        });
-        grouped.forEach(list => {
-          list.sort((a, b) => {
-            const sa = parseDate(a.start_time);
-            const sb = parseDate(b.start_time);
-            if (!sa && !sb) return 0;
-            if (!sa) return 1;
-            if (!sb) return -1;
-            return sa.toMillis() - sb.toMillis();
-          });
-        });
-
+      function createSimpleSchedule(data) {
         const rows = [];
         const segments = [];
-        let order = 1;
-
-        grouped.forEach((tasks, assignee) => {
-          let cursor = null;
-          tasks.forEach(task => {
-            const startRaw = parseDate(task.start_time);
-            const points = parseFloat(task.work_points || task.points || task.hours || task.man_hour || task.manHour || 0);
-            if (!startRaw || !isFinite(points) || points <= 0) return;
-            let start = cursor && cursor > startRaw ? cursor : startRaw;
-            start = ensureWorkingStart(start);
-            const providedEnd = parseDate(task.end_time);
-            const end = providedEnd && providedEnd > start ? providedEnd : addWorkingHours(start, points);
-            cursor = end;
-
-            rows.push({
-              order,
-              assignee,
-              start,
-              end,
-              points,
-              taskName: task.task_name || task.task_code || `Task #${order}`
-            });
-
-            segments.push({
-              order,
-              assignee,
-              start,
-              end,
-              points,
-              taskName: task.task_name || task.task_code || `Task #${order}`
-            });
-
-            order += 1;
+        
+        const tasksByAssignee = {};
+        data.forEach((task, index) => {
+          const startTime = parseDateInput(task.start_time);
+          if (!startTime || !startTime.isValid) return;
+          
+          const points = Number(task.points) || 0;
+          if (!points) return;
+          
+          // Parse end_time nếu có
+          let providedEndTime = null;
+          if (task.end_time) {
+            providedEndTime = parseDateInput(task.end_time);
+            if (!providedEndTime || !providedEndTime.isValid) {
+              providedEndTime = null;
+            }
+          }
+          
+          if (!tasksByAssignee[task.assignee]) {
+            tasksByAssignee[task.assignee] = [];
+          }
+          
+          tasksByAssignee[task.assignee].push({
+            originalIndex: index,
+            assignee: task.assignee,
+            originalStartTime: startTime,
+            providedEndTime: providedEndTime,
+            points: points,
+            task_code: task.task_code || '',
+            task_name: task.task_name || '',
           });
         });
-
+        
+        Object.keys(tasksByAssignee).forEach(assignee => {
+          tasksByAssignee[assignee].sort((a, b) => 
+            a.originalStartTime.toMillis() - b.originalStartTime.toMillis()
+          );
+        });
+        
+        Object.keys(tasksByAssignee).forEach(assignee => {
+          const assigneeTasks = tasksByAssignee[assignee];
+          let currentEndTime = null;
+          
+          assigneeTasks.forEach((task, index) => {
+            // Task đầu tiên: dùng originalStartTime
+            // Task tiếp theo: LUÔN bắt đầu ngay sau khi task trước kết thúc (không có khoảng cách)
+            let actualStartTime = currentEndTime || task.originalStartTime;
+            
+            // Đảm bảo task tiếp theo luôn nối tiếp với task trước
+            if (currentEndTime) {
+              actualStartTime = currentEndTime;
+            }
+            
+            // Ưu tiên sử dụng end_time từ JSON nếu có và task không bị điều chỉnh bởi task trước
+            let endTime;
+            const isUsingOriginalStart = actualStartTime.equals(task.originalStartTime);
+            if (task.providedEndTime && isUsingOriginalStart) {
+              // Chỉ sử dụng end_time từ JSON nếu task không bị điều chỉnh bởi task trước
+              // Đảm bảo end_time không nhỏ hơn start_time
+              endTime = task.providedEndTime > actualStartTime ? task.providedEndTime : calculateEndTime(actualStartTime, task.points);
+            } else {
+              // Tính end time dựa trên giờ làm việc
+              endTime = calculateEndTime(actualStartTime, task.points);
+            }
+            
+            rows.push({
+              order: task.originalIndex + 1,
+              assignee: task.assignee,
+              start: actualStartTime,
+              end: endTime,
+              points: task.points,
+              originalStart: task.originalStartTime,
+              task_code: task.task_code || '',
+              task_name: task.task_name || '',
+            });
+            
+            segments.push({
+              assignee: task.assignee,
+              start: actualStartTime,
+              end: endTime,
+              points: task.points,
+              order: task.originalIndex + 1,
+              originalStart: task.originalStartTime,
+              task_code: task.task_code || '',
+              task_name: task.task_name || '',
+            });
+            
+            // Cập nhật currentEndTime cho task tiếp theo
+            currentEndTime = endTime;
+          });
+        });
+        
         rows.sort((a, b) => a.order - b.order);
         segments.sort((a, b) => a.order - b.order);
+        
         return { rows, segments };
       }
 
-      function populateFilterOptions(rows) {
-        if (!assigneeFilter) return;
-        const names = Array.from(new Set(rows.map(row => row.assignee)));
-        assigneeFilter.innerHTML = '<option value="all">Tất cả nhân sự</option>';
-        names.forEach(name => {
-          const option = document.createElement('option');
-          option.value = name;
-          option.textContent = name;
-          assigneeFilter.appendChild(option);
-          expandedAssignees.add(name);
-        });
-      }
-
-      function formatDate(dt) {
-        return dt ? dt.toFormat('dd/MM HH:mm') : '';
-      }
-
-      function renderTaskList(rows, filter) {
-        if (!taskList) return;
-        const filtered = filter === 'all' ? rows : rows.filter(row => row.assignee === filter);
-        if (!filtered.length) {
-          taskList.innerHTML = '<div class="text-sm text-gray-500 px-4 py-6 text-center">Không có dữ liệu</div>';
-          recordCounter.textContent = '0 tác vụ';
-          return;
+      function getDateRange(segments) {
+        if (segments.length === 0) return [];
+        
+        const dates = segments.map(seg => seg.start.startOf('day').toMillis());
+        const minDate = Math.min(...dates);
+        const maxDate = Math.max(...dates);
+        
+        const dateRange = [];
+        let current = DateTime.fromMillis(minDate, { zone: ZONE }).startOf('day');
+        const end = DateTime.fromMillis(maxDate, { zone: ZONE }).startOf('day');
+        
+        while (current <= end) {
+          const weekdays = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'];
+          const weekdayIndex = current.weekday === 7 ? 0 : current.weekday;
+          const weekday = weekdays[weekdayIndex];
+          
+          dateRange.push({
+            date: current.toFormat('dd/MM'),
+            weekday: weekday,
+            fullDate: `${weekday}, ${current.toFormat('dd/MM')}`,
+            dateObj: current,
+          });
+          
+          current = current.plus({ days: 1 });
         }
+        
+        return dateRange;
+      }
 
-        const grouped = new Map();
-        filtered.forEach(row => {
-          if (!grouped.has(row.assignee)) grouped.set(row.assignee, []);
-          grouped.get(row.assignee).push(row);
+      function getCurrentTimePosition(dateRange) {
+        const now = DateTime.now().setZone(ZONE);
+        const startDateObj = dateRange[0].dateObj;
+        const endDateObj = dateRange[dateRange.length - 1].dateObj;
+        
+        // Nếu thời điểm hiện tại nằm ngoài phạm vi dateRange, không hiển thị
+        if (now < startDateObj.startOf('day') || now > endDateObj.endOf('day')) {
+          return null;
+        }
+        
+        const currentDate = now.startOf('day');
+        const dayIndex = Math.floor(currentDate.diff(startDateObj, 'days').days);
+        
+        const currentHour = now.hour;
+        const currentMin = now.minute;
+        const currentMinutes = currentHour * 60 + currentMin;
+        
+        const dayStartMinutes = 8 * 60;
+        const dayEndMinutes = 17 * 60;
+        const lunchStartMinutes = 12 * 60 + 30;
+        const lunchEndMinutes = 13 * 60 + 30;
+        
+        const morningMinutes = lunchStartMinutes - dayStartMinutes; // 270 phút
+        const afternoonMinutes = dayEndMinutes - lunchEndMinutes; // 210 phút
+        const totalWorkingMinutes = morningMinutes + afternoonMinutes; // 480 phút = 8 giờ
+        
+        const dayWidth = 100 / dateRange.length;
+        
+        // Tính offset trong ngày hiện tại
+        let normalizedCurrent = Math.max(dayStartMinutes, Math.min(dayEndMinutes, currentMinutes));
+        if (normalizedCurrent >= lunchStartMinutes && normalizedCurrent < lunchEndMinutes) {
+          normalizedCurrent = lunchEndMinutes;
+        }
+        
+        let currentOffset = 0;
+        if (normalizedCurrent < lunchStartMinutes) {
+          currentOffset = normalizedCurrent - dayStartMinutes;
+        } else {
+          currentOffset = morningMinutes + (normalizedCurrent - lunchEndMinutes);
+        }
+        
+        // Tính left position
+        const left = dayIndex * dayWidth + (currentOffset / totalWorkingMinutes) * dayWidth;
+        
+        return { left: Math.max(0, Math.min(100, left)) };
+      }
+
+      function getTaskPosition(segment, dateRange) {
+        const startDate = segment.start.startOf('day');
+        const endDate = segment.end.startOf('day');
+        const startDateObj = dateRange[0].dateObj;
+        
+        const startDayIndex = Math.floor(startDate.diff(startDateObj, 'days').days);
+        const endDayIndex = Math.floor(endDate.diff(startDateObj, 'days').days);
+        
+        const startHour = segment.start.hour;
+        const startMin = segment.start.minute;
+        const endHour = segment.end.hour;
+        const endMin = segment.end.minute;
+        
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        
+        const dayStartMinutes = 8 * 60;
+        const dayEndMinutes = 17 * 60;
+        const lunchStartMinutes = 12 * 60 + 30;
+        const lunchEndMinutes = 13 * 60 + 30;
+        
+        const morningMinutes = lunchStartMinutes - dayStartMinutes; // 270 phút
+        const afternoonMinutes = dayEndMinutes - lunchEndMinutes; // 210 phút
+        const totalWorkingMinutes = morningMinutes + afternoonMinutes; // 480 phút = 8 giờ
+        
+        const dayWidth = 100 / dateRange.length;
+        
+        // Tính offset trong ngày đầu tiên
+        let normalizedStart = Math.max(dayStartMinutes, Math.min(dayEndMinutes, startMinutes));
+        if (normalizedStart >= lunchStartMinutes && normalizedStart < lunchEndMinutes) {
+          normalizedStart = lunchEndMinutes;
+        }
+        
+        let startOffset = 0;
+        if (normalizedStart < lunchStartMinutes) {
+          startOffset = normalizedStart - dayStartMinutes;
+        } else {
+          startOffset = morningMinutes + (normalizedStart - lunchEndMinutes);
+        }
+        
+        // Tính offset trong ngày cuối cùng
+        let normalizedEnd = Math.max(dayStartMinutes, Math.min(dayEndMinutes, endMinutes));
+        if (normalizedEnd > lunchStartMinutes && normalizedEnd <= lunchEndMinutes) {
+          normalizedEnd = lunchStartMinutes;
+        }
+        
+        let endOffset = 0;
+        if (normalizedEnd <= lunchStartMinutes) {
+          endOffset = normalizedEnd - dayStartMinutes;
+        } else {
+          endOffset = morningMinutes + (normalizedEnd - lunchEndMinutes);
+        }
+        
+        // Tính left position
+        const left = startDayIndex * dayWidth + (startOffset / totalWorkingMinutes) * dayWidth;
+        
+        // Tính right position (vị trí kết thúc)
+        const right = endDayIndex * dayWidth + (endOffset / totalWorkingMinutes) * dayWidth;
+        
+        // Width = khoảng cách từ left đến right
+        const width = right - left;
+        
+        // Đảm bảo width không nhỏ hơn minimum để hiển thị rõ ràng
+        const minWidth = 0.5;
+        
+        return { left: Math.max(0, left), width: Math.max(minWidth, width) };
+      }
+
+      function renderTaskList(rows, filterValue) {
+        const filtered = filterValue === 'all' ? rows : rows.filter((row) => row.assignee === filterValue);
+        
+        const tasksByAssignee = {};
+        filtered.forEach((row, index) => {
+          if (!tasksByAssignee[row.assignee]) {
+            tasksByAssignee[row.assignee] = [];
+          }
+          const taskId = `f4-task-${row.assignee}-${row.start.toMillis()}-${row.end.toMillis()}-${index}`;
+          tasksByAssignee[row.assignee].push({
+            ...row,
+            taskId: taskId,
+          });
         });
 
+        if (!taskList) return;
         taskList.innerHTML = '';
-        grouped.forEach((list, assignee) => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'mb-1';
 
+        Object.keys(tasksByAssignee).forEach((assignee) => {
+          const tasks = tasksByAssignee[assignee];
+          const isExpanded = expandedCategories.has(assignee);
+          
+          const categoryDiv = document.createElement('div');
+          categoryDiv.className = 'mb-1';
+          
           const header = document.createElement('div');
-          const expanded = expandedAssignees.has(assignee);
           header.className = 'flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 cursor-pointer rounded transition';
+          header.onclick = () => {
+            if (expandedCategories.has(assignee)) {
+              expandedCategories.delete(assignee);
+            } else {
+              expandedCategories.add(assignee);
+            }
+            renderTaskList(scheduleRows, filterValue);
+          };
+          
+          const color = getColorForAssignee(assignee);
           header.innerHTML = `
             <div class="flex items-center gap-2 flex-1">
-              <svg class="w-4 h-4 text-gray-500 transition-transform ${expanded ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
               </svg>
-              <span class="h-3 w-3 rounded-full" style="background-color:${getColor(assignee)}"></span>
+              <span class="h-3 w-3 rounded-full" style="background-color: ${color}"></span>
               <span class="text-sm font-semibold text-gray-700">${assignee}</span>
-              <span class="text-xs text-gray-500">(${list.length})</span>
+              <span class="text-xs text-gray-500">(${tasks.length})</span>
             </div>
           `;
-          header.addEventListener('click', () => {
-            if (expandedAssignees.has(assignee)) expandedAssignees.delete(assignee);
-            else expandedAssignees.add(assignee);
-            renderTaskList(rows, filter);
-          });
-          wrapper.appendChild(header);
-
-          if (expanded) {
-            const body = document.createElement('div');
-            body.className = 'bg-white';
-            list.forEach(item => {
-              const row = document.createElement('div');
-              row.className = 'px-6 py-2 border-b border-gray-100 hover:bg-blue-50 transition text-sm';
-              row.innerHTML = `
-                <div class="font-medium text-gray-800">${item.taskName}</div>
-                <div class="text-xs text-gray-500 mt-1">${formatDate(item.start)} → ${formatDate(item.end)} · ${item.points.toFixed(1)}h</div>
+          
+          categoryDiv.appendChild(header);
+          
+          if (isExpanded) {
+            const tasksContainer = document.createElement('div');
+            tasksContainer.className = 'bg-white';
+            tasks.forEach((task) => {
+              const taskItem = document.createElement('div');
+              taskItem.className = 'task-item px-6 py-2 border-b border-gray-100 hover:bg-blue-50 transition text-sm cursor-pointer';
+              taskItem.setAttribute('data-task-id', task.taskId);
+              
+              taskItem.innerHTML = `
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <div class="font-medium text-gray-800">${task.task_name || task.task_code || `Task #${task.order}`}</div>
+                    <div class="text-xs text-gray-500 mt-1">
+                      ${formatDateTime(task.start)} → ${formatDateTime(task.end)}
+                    </div>
+                  </div>
+                  <div class="text-xs font-semibold text-gray-600 ml-4">
+                      ${task.points.toFixed(1)}h
+                    </div>
+                </div>
               `;
-              body.appendChild(row);
+              tasksContainer.appendChild(taskItem);
             });
-            wrapper.appendChild(body);
+            categoryDiv.appendChild(tasksContainer);
           }
-
-          taskList.appendChild(wrapper);
+          
+          taskList.appendChild(categoryDiv);
         });
 
-        recordCounter.textContent = `${filtered.length} tác vụ`;
+        if (recordCounter) recordCounter.textContent = `${filtered.length} tác vụ`;
       }
 
-      function renderTable(rows, filter) {
-        if (!tableBody) return;
-        tableBody.innerHTML = '';
-        const filtered = filter === 'all' ? rows : rows.filter(row => row.assignee === filter);
+      function updateChart(allSegments, filterValue) {
+        console.log('[Form4] updateChart được gọi, số thanh phụ:', subBars.length, subBars);
+        const filtered = filterValue === 'all' ? allSegments : allSegments.filter((segment) => segment.assignee === filterValue);
+
+        const uniqueAssignees = Array.from(new Set(filtered.map((segment) => segment.assignee)));
+        
+        if (legendContainer) {
+          legendContainer.innerHTML = '';
+          uniqueAssignees.forEach((assignee) => {
+            const legendItem = document.createElement('span');
+            legendItem.className = 'flex items-center gap-2 rounded-lg bg-white border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm hover:shadow-md transition-shadow';
+            legendItem.innerHTML = `
+              <span class="h-3 w-3 rounded-full shadow-sm" style="background-color: ${getColorForAssignee(assignee)}"></span>
+              <span>${assignee}</span>
+            `;
+            legendContainer.appendChild(legendItem);
+          });
+        }
+
+        if (!chartWrapper) return;
         if (!filtered.length) {
-          tableBody.innerHTML = '<tr><td colspan="5" class="px-4 py-3 text-center text-gray-500">Không có dữ liệu</td></tr>';
+          chartWrapper.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-sm font-medium text-gray-500">Không có dữ liệu cho bộ lọc hiện tại.</p></div>';
           return;
         }
-        filtered.forEach(row => {
+
+        const dateRange = getDateRange(filtered);
+        const height = Math.max(400, uniqueAssignees.length * 80 + 120);
+        chartWrapper.style.height = `${height}px`;
+        
+        // Tính vị trí thời điểm hiện tại
+        const currentTimePos = getCurrentTimePosition(dateRange);
+        const now = DateTime.now().setZone(ZONE);
+        const currentTimeLabel = now.toFormat('HH:mm');
+        
+        const colors = [
+          'rgba(59, 130, 246, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(245, 158, 11, 0.8)',
+          'rgba(16, 185, 129, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(6, 182, 212, 0.8)', 'rgba(132, 204, 22, 0.8)',
+        ];
+        
+        let html = `
+          <div class="w-full h-full">
+            <div class="flex border-b-2 border-gray-300 mb-5 pb-3 sticky top-0 bg-white z-10 relative">
+              <div class="w-48 flex-shrink-0 pr-5">
+                <h3 class="text-lg font-semibold text-gray-800">Nhân viên</h3>
+              </div>
+              <div class="flex-1 flex min-w-[${dateRange.length * 120}px] relative">
+                ${dateRange.map(dateInfo => `
+                  <div class="flex-1 text-center border-l border-gray-200 px-1">
+                    <div class="text-sm font-semibold text-gray-800">${dateInfo.weekday}</div>
+                    <div class="text-xs text-gray-500">${dateInfo.date}</div>
+                  </div>
+                `).join('')}
+                ${currentTimePos ? `
+                  <div 
+                    class="current-time-indicator-header absolute top-0 bottom-0 z-30 pointer-events-none"
+                    style="left: ${currentTimePos.left}%; width: 2px; background-color: #ef4444; box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);"
+                  >
+                    <div 
+                      class="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-semibold rounded shadow-lg whitespace-nowrap"
+                    >
+                      ${currentTimeLabel}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <div>
+              ${uniqueAssignees.map((assignee, assigneeIndex) => {
+                const assigneeSegments = filtered.filter(seg => seg.assignee === assignee);
+                const assigneeColor = colors[assigneeIndex % colors.length];
+                const totalHours = assigneeSegments.reduce((sum, seg) => sum + seg.points, 0);
+                
+                return `
+                  <div class="flex items-center mb-4 min-h-[80px] border-b border-gray-100 pb-4">
+                    <div class="w-48 flex-shrink-0 pr-5">
+                      <div class="text-base font-semibold text-gray-800 mb-1">${assignee}</div>
+                      <div class="text-xs text-gray-500">${assigneeSegments.length} tác vụ • ${totalHours.toFixed(1)}h</div>
+                    </div>
+                    
+                    ${(() => {
+                      // Tính số lớp tối đa của thanh phụ cho assignee này
+                      const assigneeSubBars = assigneeSegments
+                        .map(seg => subBars.find(sb => sb.task_code === seg.task_code))
+                        .filter(sb => sb && sb.form_start && sb.form_end);
+                      
+                      const subBarLayers = new Map();
+                      const subBarPositions = new Map();
+                      
+                      assigneeSubBars.forEach((matchingSubBar, idx) => {
+                        const segment = assigneeSegments.find(seg => seg.task_code === matchingSubBar.task_code);
+                        if (segment) {
+                          const subBarSegment = {
+                            start: matchingSubBar.form_start,
+                            end: matchingSubBar.form_end,
+                          };
+                          const subBarPos = getTaskPosition(subBarSegment, dateRange);
+                          subBarPositions.set(segment.task_code, {
+                            left: subBarPos.left,
+                            width: subBarPos.width,
+                            start: matchingSubBar.form_start,
+                            end: matchingSubBar.form_end
+                          });
+                        }
+                      });
+                      
+                      const doOverlap = (bar1, bar2) => {
+                        if (!bar1.start || !bar1.end || !bar2.start || !bar2.end) return false;
+                        return bar1.start < bar2.end && bar1.end > bar2.start;
+                      };
+                      
+                      // Sắp xếp các thanh phụ theo thời gian bắt đầu để gán lớp chính xác
+                      const sortedSubBars = Array.from(subBarPositions.entries())
+                        .map(([taskCode, pos]) => ({ taskCode, ...pos }))
+                        .sort((a, b) => {
+                          if (!a.start || !b.start) return 0;
+                          return a.start.toMillis() - b.start.toMillis();
+                        });
+                      
+                      // Gán lớp cho từng thanh phụ bằng thuật toán greedy - tìm lớp nhỏ nhất không overlap
+                      sortedSubBars.forEach((bar1) => {
+                        let layer = 0;
+                        let foundLayer = false;
+                        
+                        // Tìm lớp nhỏ nhất mà thanh phụ này có thể đặt vào mà không overlap với các thanh phụ khác trong lớp đó
+                        while (!foundLayer) {
+                          foundLayer = true;
+                          // Kiểm tra với tất cả các thanh phụ đã được gán lớp hiện tại
+                          subBarLayers.forEach((existingLayer, taskCode2) => {
+                            if (existingLayer === layer) {
+                              const bar2 = subBarPositions.get(taskCode2);
+                              if (bar2 && doOverlap(bar1, bar2)) {
+                                // Nếu overlap với thanh phụ trong lớp này, không thể đặt vào lớp này
+                                foundLayer = false;
+                              }
+                            }
+                          });
+                          
+                          if (!foundLayer) {
+                            layer++; // Thử lớp tiếp theo
+                          }
+                        }
+                        
+                        subBarLayers.set(bar1.taskCode, layer);
+                      });
+                      
+                      const maxLayer = subBarLayers.size > 0 ? Math.max(...Array.from(subBarLayers.values())) : -1;
+                      const containerHeight = Math.max(80, 40 + (maxLayer + 1) * 28 + 8);
+                      return `<div class="flex-1 relative bg-gray-50 rounded-md min-w-[${dateRange.length * 120}px]" style="position: relative; min-height: ${containerHeight}px;">`;
+                    })()}
+                      ${dateRange.map((_, index) => `
+                        <div class="absolute left-[${(index / dateRange.length) * 100}%] top-0 bottom-0 border-l border-gray-200 opacity-50"></div>
+                      `).join('')}
+                      
+                      ${dateRange.map((_, index) => {
+                        const morningMinutes = 4.5 * 60;
+                        const totalWorkingMinutes = 8 * 60;
+                        const lunchStartPercent = (morningMinutes / totalWorkingMinutes) * 100;
+                        const lunchWidthPercent = (60 / totalWorkingMinutes) * 100;
+                        const dayWidthPercent = 100 / dateRange.length;
+                        const dayLeft = index * dayWidthPercent;
+                        const lunchLeftInDay = lunchStartPercent * dayWidthPercent / 100;
+                        const lunchLeft = dayLeft + lunchLeftInDay;
+                        const lunchWidth = lunchWidthPercent * dayWidthPercent / 100;
+                        
+                        return `
+                          <div 
+                            class="absolute top-0 bottom-0 bg-gray-200 opacity-60 border-l border-r border-gray-300"
+                            style="left: ${lunchLeft}%; width: ${lunchWidth}%;"
+                            title="Nghỉ trưa 12:30 - 13:30"
+                          ></div>
+                        `;
+                      }).join('')}
+                      
+                      ${(() => {
+                        // Tính toán lớp (layer) cho các thanh phụ để tránh chồng lên nhau
+                        // Sử dụng index làm key để hỗ trợ nhiều thanh phụ cùng task_code
+                        const subBarLayers = new Map(); // Map<index, layer>
+                        const subBarList = []; // Array<{taskCode, left, width, start, end, index}>
+                        
+                        // Thu thập tất cả các thanh phụ cho assignee này (có thể có nhiều thanh phụ cùng task_code)
+                        let subBarIndex = 0;
+                        assigneeSegments.forEach((segment) => {
+                          const matchingSubBars = subBars.filter((subBar) => subBar.task_code === segment.task_code);
+                          matchingSubBars.forEach((matchingSubBar) => {
+                            if (matchingSubBar && matchingSubBar.form_start && matchingSubBar.form_end) {
+                              const subBarSegment = {
+                                start: matchingSubBar.form_start,
+                                end: matchingSubBar.form_end,
+                              };
+                              const subBarPos = getTaskPosition(subBarSegment, dateRange);
+                              subBarList.push({
+                                taskCode: segment.task_code,
+                                index: subBarIndex++,
+                                left: subBarPos.left,
+                                width: subBarPos.width,
+                                start: matchingSubBar.form_start,
+                                end: matchingSubBar.form_end,
+                                matchingSubBar: matchingSubBar
+                              });
+                            }
+                          });
+                        });
+                        
+                        // Hàm kiểm tra overlap giữa hai thanh phụ dựa trên thời gian
+                        const doOverlap = (bar1, bar2) => {
+                          // Kiểm tra overlap dựa trên thời gian thực tế
+                          if (!bar1.start || !bar1.end || !bar2.start || !bar2.end) return false;
+                          // Overlap nếu: bar1.start < bar2.end && bar1.end > bar2.start
+                          return bar1.start < bar2.end && bar1.end > bar2.start;
+                        };
+                        
+                        // Sắp xếp các thanh phụ theo thời gian bắt đầu để gán lớp chính xác
+                        const sortedSubBars = subBarList.slice().sort((a, b) => {
+                          if (!a.start || !b.start) return 0;
+                          return a.start.toMillis() - b.start.toMillis();
+                        });
+                        
+                        // Gán lớp cho từng thanh phụ bằng thuật toán greedy - tìm lớp nhỏ nhất không overlap
+                        sortedSubBars.forEach((bar1) => {
+                          let layer = 0;
+                          let foundLayer = false;
+                          
+                          // Tìm lớp nhỏ nhất mà thanh phụ này có thể đặt vào mà không overlap với các thanh phụ khác trong lớp đó
+                          while (!foundLayer) {
+                            foundLayer = true;
+                            // Kiểm tra với tất cả các thanh phụ đã được gán lớp hiện tại
+                            subBarLayers.forEach((existingLayer, index2) => {
+                              if (existingLayer === layer) {
+                                const bar2 = subBarList.find(b => b.index === index2);
+                                if (bar2 && doOverlap(bar1, bar2)) {
+                                  // Nếu overlap với thanh phụ trong lớp này, không thể đặt vào lớp này
+                                  foundLayer = false;
+                                }
+                              }
+                            });
+                            
+                            if (!foundLayer) {
+                              layer++; // Thử lớp tiếp theo
+                            }
+                          }
+                          
+                          subBarLayers.set(bar1.index, layer);
+                        });
+                        
+                        // Tính số lớp tối đa để điều chỉnh chiều cao container
+                        const maxLayer = subBarLayers.size > 0 ? Math.max(...Array.from(subBarLayers.values())) : -1;
+                        const containerHeight = Math.max(80, 40 + (maxLayer + 1) * 28 + 8); // Tối thiểu 80px, mỗi lớp thêm 28px
+                        
+                        return assigneeSegments.map((segment, taskIndex) => {
+                          const pos = getTaskPosition(segment, dateRange);
+                          const taskColor = assigneeColor;
+                          const taskId = `f4-task-${segment.order}`;
+                          
+                          const startTime = segment.start.toFormat('HH:mm');
+                          const endTime = segment.end.toFormat('HH:mm');
+                          const duration = segment.points.toFixed(1);
+                          const displayName = segment.task_name || segment.task_code || `Task #${segment.order}`;
+                          
+                          // Tìm tất cả thanh phụ tương ứng với task_code và render chúng
+                          const matchingSubBars = subBarList.filter((sb) => sb.taskCode === segment.task_code);
+                          
+                          let subBarHtml = '';
+                          matchingSubBars.forEach((subBarData) => {
+                            const matchingSubBar = subBarData.matchingSubBar;
+                            if (matchingSubBar && matchingSubBar.form_start && matchingSubBar.form_end) {
+                              // Tính vị trí thanh phụ
+                              const subBarSegment = {
+                                start: matchingSubBar.form_start,
+                                end: matchingSubBar.form_end,
+                              };
+                              const subBarPos = getTaskPosition(subBarSegment, dateRange);
+                              const subBarStartTime = matchingSubBar.form_start.toFormat('HH:mm');
+                              const subBarEndTime = matchingSubBar.form_end.toFormat('HH:mm');
+                              const subBarStartDate = formatDateTime(matchingSubBar.form_start);
+                              const subBarEndDate = formatDateTime(matchingSubBar.form_end);
+                              const subBarDuration = matchingSubBar.form_end.diff(matchingSubBar.form_start, 'hours').hours.toFixed(1);
+                              
+                              // Lấy lớp (layer) cho thanh phụ này dựa trên index
+                              const layer = subBarLayers.get(subBarData.index) || 0;
+                              const subBarTop = 40 + (layer * 28); // Mỗi lớp cách nhau 28px
+                            
+                            // Hiển thị task_name, fallback về task_code nếu không có
+                            // Ưu tiên task_name nếu có và không rỗng
+                            let displayName = '';
+                            if (matchingSubBar.task_name && String(matchingSubBar.task_name).trim() !== '') {
+                              displayName = String(matchingSubBar.task_name).trim();
+                            } else {
+                              displayName = matchingSubBar.task_code || segment.task_code;
+                            }
+                            
+                            // Escape HTML để tránh XSS và đảm bảo hiển thị đúng
+                            const escapeHtml = (text) => {
+                              if (!text) return '';
+                              const div = document.createElement('div');
+                              div.textContent = text;
+                              return div.innerHTML;
+                            };
+                            
+                            // Màu thanh phụ (xám nhạt với border đứt nét)
+                            const subBarColor = 'rgba(107, 114, 128, 0.6)'; // gray-500 với opacity
+                            
+                            // Tooltip hiển thị đầy đủ task_name, form_start và form_end khi hover
+                            let tooltipParts = [];
+                            // Thêm task_name nếu có
+                            if (matchingSubBar.task_name && String(matchingSubBar.task_name).trim() !== '') {
+                              tooltipParts.push(`Task: ${matchingSubBar.task_name}`);
+                            } else {
+                              tooltipParts.push(`Task code: ${matchingSubBar.task_code || segment.task_code}`);
+                            }
+                            // Thêm form_start và form_end
+                            tooltipParts.push(`Form start: ${subBarStartDate}`);
+                            tooltipParts.push(`Form end: ${subBarEndDate}`);
+                            
+                              const tooltipText = tooltipParts.join('\n');
+                              
+                              subBarHtml += `
+                                <div 
+                                  id="f4-subbar-${segment.task_code}-${subBarData.index}"
+                                  class="timeline-subbar absolute cursor-pointer rounded flex items-center px-2 text-gray-700 text-xs font-medium overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-2 border-dashed"
+                                  style="left: ${subBarPos.left}%; width: ${subBarPos.width}%; top: ${subBarTop}px; height: 24px; background-color: ${subBarColor}; border-color: rgba(107, 114, 128, 0.8);"
+                                  title="${escapeHtml(tooltipText)}"
+                                >
+                                  <span class="whitespace-nowrap overflow-hidden text-ellipsis text-gray-800">${escapeHtml(displayName)}</span>
+                                </div>
+                              `;
+                            }
+                          });
+                          
+                          return `
+                            <div 
+                              id="${taskId}"
+                              class="timeline-bar absolute cursor-pointer rounded flex items-center px-2 text-white text-xs font-semibold overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                              style="left: ${pos.left}%; width: ${pos.width}%; top: 4px; height: 32px; background-color: ${taskColor}; border: 2px solid ${taskColor};"
+                              data-task-index="${taskIndex}"
+                              data-segment-order="${segment.order}"
+                              title="${displayName} - ${startTime} → ${endTime} (${duration}h)"
+                            >
+                              <span class="whitespace-nowrap overflow-hidden text-ellipsis">${displayName}</span>
+                            </div>
+                            ${subBarHtml}
+                          `;
+                        }).join('');
+                      })()}
+                      
+                      ${currentTimePos ? `
+                        <div 
+                          class="current-time-indicator absolute top-0 bottom-0 z-20 pointer-events-none"
+                          style="left: ${currentTimePos.left}%; width: 2px; background-color: #ef4444; box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);"
+                          title="Thời điểm hiện tại: ${currentTimeLabel}"
+                        ></div>
+                      ` : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <div class="flex mt-5 pt-3 border-t border-gray-200">
+              <div class="w-48 flex-shrink-0 pr-5">
+                <div class="text-xs text-gray-500">Thang thời gian</div>
+              </div>
+              <div class="flex-1 flex min-w-[${dateRange.length * 120}px]">
+                ${dateRange.map(() => {
+                  const morningMinutes = 4.5 * 60;
+                  const totalWorkingMinutes = 8 * 60;
+                  const lunchStartPercent = (morningMinutes / totalWorkingMinutes) * 100;
+                  
+                  return `
+                    <div class="flex-1 relative border-l border-gray-200 px-1 text-xs text-gray-500">
+                      <span class="absolute left-0">8h</span>
+                      <span class="absolute left-[${lunchStartPercent}%] -translate-x-1/2">12h30</span>
+                      <span class="absolute left-[${lunchStartPercent}%] -translate-x-1/2" style="top: 16px;">13h30</span>
+                      <span class="absolute right-0">17h</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        
+        chartWrapper.innerHTML = html;
+      }
+
+      function renderTable(rows, filterValue) {
+        if (!tableBody) return;
+        const filtered = filterValue === 'all' ? rows : rows.filter((row) => row.assignee === filterValue);
+        tableBody.innerHTML = '';
+        filtered.forEach((row) => {
           const tr = document.createElement('tr');
           tr.className = 'hover:bg-blue-50 transition';
           tr.innerHTML = `
             <td class="px-4 py-3 font-semibold text-blue-600">${row.order}</td>
             <td class="px-4 py-3">${row.assignee}</td>
-            <td class="px-4 py-3">${formatDate(row.start)}</td>
-            <td class="px-4 py-3">${formatDate(row.end)}</td>
+            <td class="px-4 py-3">${formatDateTime(row.start)}</td>
+            <td class="px-4 py-3">${formatDateTime(row.end)}</td>
             <td class="px-4 py-3 text-right font-semibold text-slate-700">${row.points.toFixed(2)}h</td>
           `;
           tableBody.appendChild(tr);
         });
       }
 
-      function buildDateRange(segments) {
-        if (!segments.length) return [];
-        let min = segments[0].start.startOf('day');
-        let max = segments[0].end.startOf('day');
-        segments.forEach(seg => {
-          if (seg.start < min) min = seg.start.startOf('day');
-          if (seg.end > max) max = seg.end.startOf('day');
+      function populateFilterOptions(rows) {
+        if (!assigneeFilter) return;
+        const names = Array.from(new Set(rows.map((row) => row.assignee)));
+        assigneeFilter.innerHTML = '<option value="all">Tất cả nhân sự</option>';
+        names.forEach((name) => {
+          const option = document.createElement('option');
+          option.value = name;
+          option.textContent = name;
+          assigneeFilter.appendChild(option);
+          expandedCategories.add(name);
         });
-        const days = [];
-        let pointer = min;
-        while (pointer <= max) {
-          days.push(pointer);
-          pointer = pointer.plus({ days: 1 });
-        }
-        return days;
-      }
-
-      function getSegmentPosition(segment, dateRange) {
-        const firstDay = dateRange[0];
-        const startIndex = Math.floor(segment.start.startOf('day').diff(firstDay, 'days').days);
-        const endIndex = Math.floor(segment.end.startOf('day').diff(firstDay, 'days').days);
-
-        const normalize = (minutes) => {
-          if (minutes <= LUNCH_START) return minutes - DAY_START;
-          if (minutes >= LUNCH_END) return MORNING_MINUTES + (minutes - LUNCH_END);
-          return MORNING_MINUTES;
-        };
-
-        let startMinutes = segment.start.hour * 60 + segment.start.minute;
-        let endMinutes = segment.end.hour * 60 + segment.end.minute;
-        startMinutes = Math.min(Math.max(startMinutes, DAY_START), DAY_END);
-        endMinutes = Math.min(Math.max(endMinutes, DAY_START), DAY_END);
-
-        const startOffset = normalize(startMinutes);
-        const endOffset = normalize(endMinutes);
-        const dayWidth = 100 / dateRange.length;
-        const left = startIndex * dayWidth + (startOffset / WORKDAY_MINUTES) * dayWidth;
-        const right = endIndex * dayWidth + (endOffset / WORKDAY_MINUTES) * dayWidth;
-        return { left: Math.max(0, left), width: Math.max(0.8, right - left) };
-      }
-
-      function renderTimeline(segments, filter) {
-        if (!chartWrapper) return;
-        // Chỉ hiển thị những người trong danh sách được phép trên map
-        let allowedSegments = segments.filter(seg => ALLOWED_MAP_ASSIGNEES.has(seg.assignee));
-        const filtered = filter === 'all' ? allowedSegments : allowedSegments.filter(seg => seg.assignee === filter);
-        if (!filtered.length) {
-          chartWrapper.innerHTML = '<div class="flex items-center justify-center h-full text-sm text-gray-500">Không có dữ liệu để hiển thị timeline.</div>';
-          legendContainer.innerHTML = '';
-          return;
-        }
-
-        const dateRange = buildDateRange(filtered);
-        const assignees = Array.from(new Set(filtered.map(seg => seg.assignee)));
-        chartWrapper.style.height = `${Math.max(320, assignees.length * 90 + 120)}px`;
-
-        legendContainer.innerHTML = assignees.map(name => `
-          <span class="flex items-center gap-2 rounded-lg bg-white border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm">
-            <span class="h-3 w-3 rounded-full" style="background-color:${getColor(name)}"></span>${name}
-          </span>
-        `).join('');
-
-        const now = DateTime.now().setZone(TIME_ZONE);
-        let currentIndicator = '';
-        if (now >= dateRange[0].startOf('day') && now <= dateRange[dateRange.length - 1].endOf('day')) {
-          const normalize = (minutes) => {
-            if (minutes <= LUNCH_START) return minutes - DAY_START;
-            if (minutes >= LUNCH_END) return MORNING_MINUTES + (minutes - LUNCH_END);
-            return MORNING_MINUTES;
-          };
-          let minutes = now.hour * 60 + now.minute;
-          minutes = Math.min(Math.max(minutes, DAY_START), DAY_END);
-          const dayIndex = Math.floor(now.startOf('day').diff(dateRange[0], 'days').days);
-          const dayWidth = 100 / dateRange.length;
-          const offset = dayIndex * dayWidth + (normalize(minutes) / WORKDAY_MINUTES) * dayWidth;
-          currentIndicator = `
-            <div class="absolute top-0 bottom-0 z-30 pointer-events-none" style="left:${offset}%; width:2px; background-color:#ef4444;">
-              <span class="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 bg-red-500 text-white text-xs font-semibold rounded shadow">${now.toFormat('HH:mm')}</span>
-            </div>
-          `;
-        }
-
-        const header = dateRange.map(day => `
-          <div class="flex-1 text-center border-l border-gray-200 px-1">
-            <div class="text-sm font-semibold text-gray-800">${day.toFormat('ccc')}</div>
-            <div class="text-xs text-gray-500">${day.toFormat('dd/MM')}</div>
-          </div>
-        `).join('');
-
-        const rowsHtml = assignees.map(name => {
-          const segs = filtered.filter(seg => seg.assignee === name);
-          const color = getColor(name);
-          const total = segs.reduce((sum, seg) => sum + seg.points, 0);
-          const bars = segs.map(seg => {
-            const pos = getSegmentPosition(seg, dateRange);
-            return `
-              <div class="absolute top-2 h-8 rounded flex items-center px-2 text-xs font-semibold text-white shadow-sm"
-                   style="left:${pos.left}%; width:${pos.width}%; background-color:${color};"
-                   title="${seg.taskName} · ${formatDate(seg.start)} → ${formatDate(seg.end)} (${seg.points.toFixed(1)}h)">
-                <span class="truncate">${seg.taskName}</span>
-              </div>
-            `;
-          }).join('');
-          return `
-            <div class="flex items-center mb-4 min-h-[64px] border-b border-gray-100 pb-4">
-              <div class="w-48 flex-shrink-0 pr-5">
-                <div class="text-base font-semibold text-gray-800 mb-1">${name}</div>
-                <div class="text-xs text-gray-500">${segs.length} tác vụ · ${total.toFixed(1)}h</div>
-              </div>
-              <div class="flex-1 relative rounded-lg bg-gray-50 border border-gray-200 overflow-hidden min-h-[52px]">
-                ${bars}
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        chartWrapper.innerHTML = `
-          <div class="w-full h-full">
-            <div class="flex border-b border-gray-200 mb-5 pb-3 sticky top-0 bg-white z-10 relative">
-              <div class="w-48 flex-shrink-0 pr-5">
-                <h3 class="text-lg font-semibold text-gray-800">Nhân viên</h3>
-              </div>
-              <div class="flex-1 flex relative min-w-[${dateRange.length * 120}px]">
-                ${header}
-                ${currentIndicator}
-              </div>
-            </div>
-            <div>${rowsHtml}</div>
-            <div class="flex mt-4 pt-3 border-t border-gray-200">
-              <div class="w-48 flex-shrink-0 pr-5">
-                <div class="text-xs text-gray-500">Khung thời gian</div>
-              </div>
-              <div class="flex-1 flex justify-between text-xs text-gray-500 min-w-[${dateRange.length * 120}px] px-1">
-                <span>08:00</span>
-                <span>12:30</span>
-                <span>13:30</span>
-                <span>17:00</span>
-              </div>
-            </div>
-          </div>
-        `;
       }
 
       function refreshView() {
-        const filter = assigneeFilter ? assigneeFilter.value : 'all';
-        renderTaskList(scheduleRows, filter);
-        renderTable(scheduleRows, filter);
-        renderTimeline(timelineSegments, filter);
+        const filterValue = assigneeFilter ? assigneeFilter.value : 'all';
+        renderTaskList(scheduleRows, filterValue);
+        renderTable(scheduleRows, filterValue);
+        updateChart(segments, filterValue);
       }
+
+      async function loadSubBars() {
+        try {
+          // Load dữ liệu thanh phụ từ webhook riêng (JSON độc lập)
+          // Webhook trả về mảng các object: [{task_code, form_start, form_end}, ...]
+          console.log('[Form4] Đang load thanh phụ từ:', SUBBARS_WEBHOOK_URL);
+          const response = await fetch(SUBBARS_WEBHOOK_URL);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const apiData = await response.json();
+          console.log('[Form4] Dữ liệu nhận được từ webhook thanh phụ:', apiData);
+          
+          // Xử lý nhiều trường hợp: mảng trực tiếp, object có key, hoặc object đơn lẻ
+          let dataArray = [];
+          if (Array.isArray(apiData)) {
+            dataArray = apiData;
+          } else if (apiData && typeof apiData === 'object') {
+            // Nếu là object, kiểm tra các key phổ biến
+            if (apiData.data && Array.isArray(apiData.data)) {
+              dataArray = apiData.data;
+            } else if (apiData.subBars && Array.isArray(apiData.subBars)) {
+              dataArray = apiData.subBars;
+            } else if (apiData.items && Array.isArray(apiData.items)) {
+              dataArray = apiData.items;
+            } else if (apiData.task_code) {
+              // Object đơn lẻ
+              dataArray = [apiData];
+            }
+          }
+          
+          // Kiểm tra nếu là dữ liệu thanh phụ (có task_code)
+          if (dataArray.length > 0) {
+            const firstItem = dataArray[0];
+            if (firstItem.task_code) {
+              console.log('[Form4] Phát hiện dữ liệu thanh phụ, số lượng:', dataArray.length);
+              // Log một vài items đầu để kiểm tra cấu trúc
+              if (dataArray.length > 0) {
+                console.log('[Form4] Mẫu dữ liệu đầu tiên:', JSON.stringify(dataArray[0], null, 2));
+              }
+              // Parse và validate - chỉ giữ lại những items có cả form_start và form_end hợp lệ (không rỗng)
+              const parsedSubBars = dataArray
+                .filter((subBar) => {
+                  // Chỉ xử lý những items có cả form_start và form_end không rỗng
+                  const hasStart = subBar.form_start && String(subBar.form_start).trim() !== '';
+                  const hasEnd = subBar.form_end && String(subBar.form_end).trim() !== '';
+                  return hasStart && hasEnd;
+                })
+                .map((subBar) => {
+                  const formStart = parseDateInput(subBar.form_start);
+                  const formEnd = parseDateInput(subBar.form_end);
+                  // Đảm bảo task_name được lưu đúng, kể cả khi là null/undefined
+                  const taskName = (subBar.task_name !== null && subBar.task_name !== undefined) 
+                    ? String(subBar.task_name).trim() 
+                    : '';
+                  console.log('[Form4] Parse item:', {
+                    task_code: subBar.task_code,
+                    task_name_raw: subBar.task_name,
+                    task_name_parsed: taskName,
+                    has_task_name: subBar.hasOwnProperty('task_name')
+                  });
+                  return {
+                    task_code: subBar.task_code || '',
+                    task_name: taskName,
+                    form_start: formStart,
+                    form_end: formEnd,
+                  };
+                })
+                .filter((subBar) => {
+                  const isValid = subBar.form_start && subBar.form_start.isValid && subBar.form_end && subBar.form_end.isValid;
+                  if (!isValid) {
+                    console.warn('[Form4] Bỏ qua thanh phụ không hợp lệ:', subBar.task_code);
+                  }
+                  return isValid;
+                });
+              
+              console.log('[Form4] Đã parse được', parsedSubBars.length, 'thanh phụ hợp lệ từ', dataArray.length, 'items');
+              return parsedSubBars;
+            } else {
+              console.log('[Form4] Dữ liệu không phải thanh phụ (thiếu task_code)');
+            }
+          } else {
+            console.log('[Form4] Không tìm thấy mảng dữ liệu trong response');
+          }
+          
+          // Nếu không phải dữ liệu thanh phụ, trả về mảng rỗng
+          return [];
+        } catch (error) {
+          console.error('[Form4] Lỗi khi tải dữ liệu thanh phụ:', error);
+          return [];
+        }
+      }
+
+      // Hàm helper để set dữ liệu thanh phụ từ bên ngoài
+      function setSubBarsData(subBarsData) {
+        try {
+          if (!Array.isArray(subBarsData)) {
+            console.error('Dữ liệu thanh phụ phải là mảng');
+            return;
+          }
+          
+          subBars = subBarsData.map((subBar) => {
+            const formStart = parseDateInput(subBar.form_start);
+            const formEnd = parseDateInput(subBar.form_end);
+            return {
+              task_code: subBar.task_code || '',
+              task_name: subBar.task_name || '',
+              form_start: formStart,
+              form_end: formEnd,
+            };
+          }).filter((subBar) => subBar.form_start && subBar.form_start.isValid && subBar.form_end && subBar.form_end.isValid);
+          
+          // Refresh view để hiển thị thanh phụ
+          refreshView();
+          
+          console.log(`Đã set ${subBars.length} thanh phụ`);
+        } catch (error) {
+          console.error('Lỗi khi set dữ liệu thanh phụ:', error);
+        }
+      }
+      
+      // Expose hàm setSubBarsData để có thể gọi từ console hoặc code khác
+      window.setForm4SubBars = setSubBarsData;
 
       async function loadData() {
         if (statusText) statusText.textContent = 'Đang tải dữ liệu...';
         try {
-          const resp = await fetch(SCHEDULE_DATA_ENDPOINT);
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const raw = await resp.json();
-          let flattened = [];
-          if (Array.isArray(raw)) {
-            raw.forEach(item => {
-              if (item && Array.isArray(item.tasks)) {
-                item.tasks.forEach(task => {
-                  flattened.push({
+          const response = await fetch('https://iatzhxxuk.tino.page/webhook/Dashboard1form4');
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const apiData = await response.json();
+          
+          let flattenedData = [];
+          let subBarsData = [];
+          
+          if (Array.isArray(apiData)) {
+            apiData.forEach((item) => {
+              // Xử lý dữ liệu thanh chính
+              if (item.tasks && Array.isArray(item.tasks)) {
+                item.tasks.forEach((task) => {
+                  flattenedData.push({
                     assignee: task.assignee || item.assignee,
                     task_code: task.task_code || '',
                     task_name: task.task_name || '',
                     start_time: task.start_time || '',
                     end_time: task.end_time || '',
-                    points: task.work_points || task.points || task.hours || 0
+                    points: task.work_points || task.points || 0,
                   });
                 });
               } else {
-                flattened.push(item);
+                flattenedData.push(item);
+              }
+              // Xử lý dữ liệu thanh phụ (nếu có trong response)
+              if (item.subBars && Array.isArray(item.subBars)) {
+                subBarsData.push(...item.subBars);
               }
             });
-          } else if (Array.isArray(raw?.data)) {
-            flattened = raw.data;
+          } else {
+            flattenedData = Array.isArray(apiData) ? apiData : [];
+            // Kiểm tra nếu apiData có trường subBars
+            if (apiData.subBars && Array.isArray(apiData.subBars)) {
+              subBarsData = apiData.subBars;
+            }
           }
-
-          const { rows, segments } = buildSchedule(flattened);
+          
+          // Parse dữ liệu thanh phụ từ webhook chính (nếu có)
+          const subBarsFromMain = subBarsData.map((subBar) => {
+            const formStart = parseDateInput(subBar.form_start);
+            const formEnd = parseDateInput(subBar.form_end);
+            return {
+              task_code: subBar.task_code || '',
+              task_name: subBar.task_name || '',
+              form_start: formStart,
+              form_end: formEnd,
+            };
+          }).filter((subBar) => subBar.form_start && subBar.form_start.isValid && subBar.form_end && subBar.form_end.isValid);
+          
+          rawData = flattenedData;
+          
+          // Load dữ liệu thanh phụ từ webhook riêng TRƯỚC KHI render
+          let subBarsFromWebhook = [];
+          try {
+            subBarsFromWebhook = await loadSubBars();
+            console.log('[Form4] Kết quả loadSubBars:', subBarsFromWebhook);
+          } catch (subBarError) {
+            console.warn('[Form4] Không thể load thanh phụ từ webhook riêng:', subBarError);
+          }
+          
+          // Merge dữ liệu thanh phụ từ cả hai nguồn
+          subBars = [...subBarsFromMain, ...subBarsFromWebhook];
+          console.log(`[Form4] Tổng hợp thanh phụ: ${subBarsFromMain.length} từ webhook chính + ${subBarsFromWebhook.length} từ webhook riêng = ${subBars.length} tổng cộng`);
+          
+          if (statusText) statusText.textContent = `Đã tải ${flattenedData.length} tác vụ${subBars.length > 0 ? `, ${subBars.length} thanh phụ` : ''}`;
+          
+          colorCache.clear();
+          const { rows, segments: timeline } = createSimpleSchedule(rawData);
           scheduleRows = rows;
-          timelineSegments = segments;
+          segments = timeline;
           populateFilterOptions(rows);
           if (assigneeFilter) assigneeFilter.value = 'all';
+          
+          // Gọi refreshView() SAU KHI đã có đầy đủ dữ liệu (cả thanh chính và thanh phụ)
           refreshView();
-          if (statusText) statusText.textContent = `Đã tải ${flattened.length} tác vụ`;
-        } catch (err) {
-          console.error('Lỗi tải Form 4:', err);
-          if (statusText) statusText.textContent = `Lỗi: ${err.message || err}`;
+        } catch (error) {
+          console.error('Lỗi khi tải dữ liệu:', error);
+          if (statusText) statusText.textContent = `Lỗi: ${error.message}`;
         }
       }
 
-      if (reloadButton) reloadButton.addEventListener('click', loadData);
-      if (assigneeFilter) assigneeFilter.addEventListener('change', refreshView);
-      if (closeDetailBtn && detailSection) {
-        closeDetailBtn.addEventListener('click', () => detailSection.classList.add('hidden'));
+      if (reloadButton) {
+        reloadButton.addEventListener('click', loadData);
+      }
+      if (assigneeFilter) {
+        assigneeFilter.addEventListener('change', refreshView);
+      }
+      if (closeDetailBtn) {
+        closeDetailBtn.addEventListener('click', () => {
+          if (detailSection) detailSection.classList.add('hidden');
+        });
       }
 
       form4Reload = loadData;
