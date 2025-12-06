@@ -110,9 +110,40 @@
       <div class="mb-8">
         <h2 class="text-3xl font-extrabold text-primary-blue tracking-wide mb-1">Phiếu Yêu Cầu Thử Nghiệm</h2>
         <div class="h-1 w-16 bg-primary-blue mb-2 rounded"></div>
-        <p class="text-base text-gray-500">Vui lòng điền đầy đủ các mục bắt buộc cho sản phẩm/linh kiện cần thử nghiệm. Biểu mẫu sẽ tự động thay đổi theo lựa chọn của bạn.</p>
       </div>
-      <form id="testRequestForm" class="space-y-6" autocomplete="off">
+      
+      <!-- Thông báo khóa form -->
+      <div class="flex items-center justify-center min-h-[500px] py-12">
+        <div class="max-w-2xl mx-auto text-center px-6">
+          <div class="mb-8">
+            <div class="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+              <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+            </div>
+            <h3 class="text-3xl font-bold text-gray-800 mb-6">Thông báo quan trọng</h3>
+          </div>
+          
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-8 rounded-r-lg mb-8 shadow-sm">
+            <p class="text-lg text-gray-700 leading-relaxed mb-4">
+              Để đảm bảo thông tin được điền đúng và chính xác, việc nhập tác vụ sẽ được giới hạn cho các phòng ban ngoài DQA.
+            </p>
+            <p class="text-xl font-semibold text-blue-700 mb-2">
+              Vui lòng gửi yêu cầu thông qua hệ thống KOI.
+            </p>
+          </div>
+          
+          <div class="flex items-center justify-center gap-2 text-gray-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="text-sm italic">Xin cảm ơn sự hợp tác của Quý Anh/Chị!</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Form bị ẩn hoàn toàn -->
+      <form id="testRequestForm" class="hidden" autocomplete="off">
         <!-- A. General Information -->
         <div class="section-card section-a">
           <h3 class="text-lg font-semibold text-primary-blue mb-2">A. Thông tin chung</h3>
@@ -361,7 +392,6 @@
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Người yêu cầu</th>
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Ngày gửi</th>
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Hạn mong muốn</th>
-              <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Hạn đáp ứng</th>
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Tên công việc</th>
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Phụ trách</th>
               <th class="px-6 py-4 text-left font-semibold text-sm uppercase tracking-wider">Trạng thái</th>
@@ -369,7 +399,7 @@
             </tr>
           </thead>
           <tbody id="trackingTableBody" class="bg-white text-gray-900 divide-y divide-gray-200">
-            <tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>
+            <tr><td colspan="7" class="px-6 py-8 text-center text-gray-500 text-base">Nhấn Tìm kiếm để tải trạng thái công việc.</td></tr>
           </tbody>
         </table>
       </div>
@@ -606,12 +636,8 @@
     const FILE_UPLOAD_ENDPOINT = FORM_SUBMIT_ENDPOINT;
     const FEEDBACK_SUBMIT_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/21a9aa69-4434-47e1-97fc-b7fb84adb43e";
     const FEEDBACK_LIST_ENDPOINT = "https://iatzhxxuk.tino.page/webhook/925155db-ed53-4a3a-bd4d-1ba8378a545c";
-    // Endpoint for Task Tracking - sử dụng webhook để tránh CORS
-    // Webhook này sẽ proxy request đến API với token
-    const TASK_TRACKING_WEBHOOK = "https://iatzhxxuk.tino.page/webhook/TaskTracking"; // Cần tạo webhook mới
-    const TASK_TRACKING_API_ENDPOINT = "https://iatzhxxuk.tino.page/api/v2/tables/mnwnhukgbu8zs9o/records";
-    const TASK_TRACKING_TOKEN = "TN3D9GE7_3OtqX5C0IFeaUgd3tRr5B-rshJQANAB";
-    const TASK_TRACKING_VIEW_ID = "vwjldjrlqod1pyuf";
+    // Endpoint for Task Tracking
+    const TASK_TRACKING_WEBHOOK = "https://iatzhxxuk.tino.page/webhook/LaydulieuchoFormPYC";
     const LOCAL_FEEDBACK_KEY = 'DQA_FEEDBACK_V1';
     function __loadFeedback(){ try { return JSON.parse(localStorage.getItem(LOCAL_FEEDBACK_KEY) || '[]'); } catch { return []; } }
     function __saveFeedback(rec){ const cur = __loadFeedback(); cur.push(rec); localStorage.setItem(LOCAL_FEEDBACK_KEY, JSON.stringify(cur)); }
@@ -3358,7 +3384,18 @@
       const ttFilterOff = document.getElementById('tt-filter-off');
       
       let trackingData = [];
-      let currentMonthFilter = null;
+      
+      // Đặt mặc định tháng hiện tại cho bộ lọc
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const currentMonthValue = `${currentYear}-${currentMonth}`;
+      let currentMonthFilter = currentMonthValue;
+      
+      // Đặt giá trị mặc định cho input tháng
+      if (ttMonth) {
+        ttMonth.value = currentMonthValue;
+      }
 
       // Ngăn form submit mặc định (refresh trang)
       if (taskTrackingForm) {
@@ -3388,35 +3425,88 @@
           taskTrackingSearchBtn.textContent = '⏳ Đang tìm kiếm...';
         }
         if (trackingTableBody) {
-          trackingTableBody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Đang tải dữ liệu...</td></tr>';
+          trackingTableBody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500 text-base">Đang tải dữ liệu...</td></tr>';
         }
 
         try {
-          // Gọi qua webhook để tránh CORS - webhook sẽ proxy request đến API
-          const payload = {
-            action: 'getRecords',
-            viewId: TASK_TRACKING_VIEW_ID,
-            offset: 0,
-            limit: 1000,
-            token: TASK_TRACKING_TOKEN,
-            apiEndpoint: TASK_TRACKING_API_ENDPOINT
-          };
+          // Gọi webhook để lấy dữ liệu
+          // Thử nhiều cách để tránh CORS
+          const params = new URLSearchParams();
+          if (senderEmail) params.append('senderEmail', senderEmail);
+          if (department) params.append('department', department);
+          
+          const urlWithParams = params.toString() 
+            ? `${TASK_TRACKING_WEBHOOK}?${params.toString()}`
+            : TASK_TRACKING_WEBHOOK;
+          
+          console.log('Fetching via webhook:', urlWithParams);
 
-          console.log('Fetching via webhook:', TASK_TRACKING_WEBHOOK);
+          let resp = null;
+          let lastError = null;
 
-          // Gọi webhook với POST (giống các endpoint khác)
-          const resp = await fetch(TASK_TRACKING_WEBHOOK, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          }).catch(networkErr => {
-            // Xử lý lỗi network cụ thể
-            console.error('Network error:', networkErr);
-            throw new Error(`Lỗi kết nối: ${networkErr.message}. Vui lòng kiểm tra kết nối mạng.`);
-          });
+          // Cách 1: Thử GET không có headers (simple request, không cần preflight)
+          try {
+            resp = await fetch(urlWithParams, {
+              method: 'GET',
+              mode: 'cors'
+            });
+            if (resp.ok) {
+              console.log('GET request thành công');
+            }
+          } catch (getErr) {
+            console.log('GET without headers failed:', getErr);
+            lastError = getErr;
+          }
+
+          // Cách 2: Nếu GET không được, thử GET với Accept header
+          if (!resp || !resp.ok) {
+            try {
+              resp = await fetch(urlWithParams, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json'
+                },
+                mode: 'cors'
+              });
+              if (resp.ok) {
+                console.log('GET with Accept header thành công');
+              }
+            } catch (getErr2) {
+              console.log('GET with Accept header failed:', getErr2);
+              lastError = getErr2;
+            }
+          }
+
+          // Cách 3: Nếu vẫn không được, thử POST
+          if (!resp || !resp.ok) {
+            try {
+              const payload = {
+                senderEmail: senderEmail || '',
+                department: department || ''
+              };
+              
+              resp = await fetch(TASK_TRACKING_WEBHOOK, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload),
+                mode: 'cors'
+              });
+              if (resp.ok) {
+                console.log('POST request thành công');
+              }
+            } catch (postErr) {
+              console.error('POST failed:', postErr);
+              lastError = postErr;
+            }
+          }
+
+          // Nếu tất cả đều thất bại
+          if (!resp || !resp.ok) {
+            throw new Error(`Không thể kết nối đến webhook. Lỗi CORS có thể xảy ra khi mở file HTML trực tiếp từ máy tính. Vui lòng chạy file qua web server hoặc kiểm tra cấu hình CORS của webhook. Chi tiết: ${lastError?.message || 'Unknown error'}`);
+          }
 
           if (!resp.ok) {
             const errorText = await resp.text();
@@ -3453,11 +3543,20 @@
             }
           }
 
-          // Lọc thêm theo email và department nếu cần (fallback nếu where clause không hoạt động)
+          // Lọc thêm theo email và department nếu cần (fallback nếu webhook không lọc)
           if (senderEmail || department) {
             records = records.filter(item => {
-              const itemEmail = item['Người yêu cầu'] || '';
-              const itemDept = item['Phòng ban yêu cầu'] || '';
+              const getField = (obj, keys) => {
+                for (const key of keys) {
+                  if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+                    return String(obj[key]);
+                  }
+                }
+                return '';
+              };
+              
+              const itemEmail = getField(item, ['Người yêu cầu', 'người yêu cầu', 'Email Assigner', 'email assigner']);
+              const itemDept = getField(item, ['Bộ phận đề xuất', 'bộ phận đề xuất', 'Phòng ban yêu cầu', 'phòng ban yêu cầu']);
               
               let matchEmail = !senderEmail || itemEmail.toLowerCase().includes(senderEmail.toLowerCase());
               let matchDept = !department || itemDept === department;
@@ -3472,22 +3571,49 @@
         } catch (err) {
           console.error('Lỗi tìm kiếm công việc:', err);
           let errorMsg = 'Lỗi không xác định';
+          let isCorsError = false;
+          
           if (err.message) {
             errorMsg = err.message;
+            // Kiểm tra nếu là lỗi CORS
+            if (err.message.includes('CORS') || err.message.includes('Failed to fetch') || err.message.includes('Access-Control')) {
+              isCorsError = true;
+            }
           } else if (typeof err === 'string') {
             errorMsg = err;
           }
           
           if (trackingTableBody) {
+            const corsHelp = isCorsError ? `
+              <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-4 text-left max-w-2xl mx-auto">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <p class="text-sm text-yellow-700 font-medium">Lỗi CORS - Giải pháp:</p>
+                    <ul class="mt-2 text-sm text-yellow-600 list-disc list-inside space-y-1">
+                      <li>Nếu đang mở file HTML trực tiếp từ máy tính, vui lòng chạy qua web server (ví dụ: Live Server trong VS Code)</li>
+                      <li>Hoặc upload file lên hosting/web server để truy cập qua HTTP/HTTPS</li>
+                      <li>Kiểm tra webhook có hỗ trợ CORS headers không</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ` : '';
+            
             trackingTableBody.innerHTML = `
               <tr>
-                <td colspan="8" class="px-6 py-8 text-center text-red-500 text-base">
+                <td colspan="7" class="px-6 py-8 text-center text-red-500 text-base">
                   <div class="space-y-2">
                     <div class="font-semibold">Lỗi: ${errorMsg}</div>
+                    ${corsHelp}
                     <div class="text-xs text-gray-500 mt-2">
                       Vui lòng kiểm tra:<br/>
                       - Kết nối mạng<br/>
-                      - Token API có hợp lệ<br/>
+                      - Webhook có hoạt động<br/>
                       - Console để xem chi tiết lỗi (F12)
                     </div>
                   </div>
@@ -3507,25 +3633,7 @@
       function renderTrackingTable() {
         if (!trackingTableBody) return;
 
-        let filteredData = [...trackingData];
-
-        // Áp dụng bộ lọc tháng nếu có
-        if (currentMonthFilter) {
-          const [year, month] = currentMonthFilter.split('-').map(Number);
-          filteredData = filteredData.filter(item => {
-            const dateStr = item['Ngày yêu cầu'] || '';
-            if (!dateStr) return false;
-            const date = new Date(dateStr);
-            return date.getFullYear() === year && (date.getMonth() + 1) === month;
-          });
-        }
-
-        if (filteredData.length === 0) {
-          trackingTableBody.innerHTML = '<tr><td colspan="8" class="px-6 py-8 text-center text-gray-500 text-base">Không tìm thấy dữ liệu.</td></tr>';
-          return;
-        }
-
-        // Map các trường từ response (hỗ trợ nhiều format)
+        // Helper function để lấy giá trị từ object với nhiều key khác nhau
         const getField = (item, keys) => {
           for (const key of keys) {
             if (item[key] !== undefined && item[key] !== null && item[key] !== '') {
@@ -3534,6 +3642,29 @@
           }
           return '';
         };
+
+        let filteredData = [...trackingData];
+
+        // Áp dụng bộ lọc tháng nếu có
+        if (currentMonthFilter) {
+          const [year, month] = currentMonthFilter.split('-').map(Number);
+          filteredData = filteredData.filter(item => {
+            const dateStr = getField(item, ['Ngày yêu cầu', 'ngày yêu cầu', 'Ngày gửi form', 'ngày gửi form']);
+            if (!dateStr) return false;
+            try {
+              const date = new Date(dateStr);
+              if (isNaN(date.getTime())) return false;
+              return date.getFullYear() === year && (date.getMonth() + 1) === month;
+            } catch {
+              return false;
+            }
+          });
+        }
+
+        if (filteredData.length === 0) {
+          trackingTableBody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500 text-base">Không tìm thấy dữ liệu.</td></tr>';
+          return;
+        }
 
         const formatDate = (dateStr) => {
           if (!dateStr) return '';
@@ -3563,22 +3694,20 @@
         };
 
         trackingTableBody.innerHTML = filteredData.map((item, idx) => {
-          // Map theo mapping mới từ user
-          const assigner = item['Người yêu cầu'] || '';
-          const submissionDate = item['Ngày yêu cầu'] || '';
-          const desiredDueDate = item['Hạn mong muốn'] || '';
-          const completionDate = item['Hạn đáp ứng'] || '';
-          const taskName = item['Ngày hoàn thành theo công chuẩn'] || '';
-          const pic = item['Assignee'] || '';
-          const status = item['Kết quả'] || '';
-          const reportCode = item['Mã Báo cáo'] || '';
+          // Map theo database từ DataDB.js
+          const assigner = getField(item, ['Người yêu cầu', 'người yêu cầu', 'Email Assigner']);
+          const submissionDate = getField(item, ['Ngày yêu cầu', 'ngày yêu cầu', 'Ngày gửi form', 'ngày gửi form']);
+          const desiredDueDate = getField(item, ['Hạn mong muốn', 'hạn mong muốn']);
+          const taskName = getField(item, ['Task Name', 'task name', 'Tên công việc', 'tên công việc']);
+          const pic = getField(item, ['Assignee', 'assignee', 'Phụ trách', 'phụ trách']);
+          const status = getField(item, ['Kết quả', 'kết quả', 'Hiện trạng', 'hiện trạng']);
+          const reportCode = getField(item, ['Mã Báo cáo', 'mã báo cáo', 'Mã báo cáo']);
 
           return `
             <tr class="hover:bg-gray-50 transition">
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${assigner || '-'}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDate(submissionDate)}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDate(desiredDueDate)}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatDate(completionDate)}</td>
               <td class="px-6 py-4 text-sm text-gray-900">${taskName || '-'}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${pic || '-'}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">${getStatusBadge(status)}</td>
